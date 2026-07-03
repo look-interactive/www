@@ -12,21 +12,18 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='11' fill='none' stroke='%23e6398c' stroke-width='3'/><circle cx='16' cy='16' r='4' fill='%236a5cff'/></svg>">
 <style>
   :root{
-    --bg:#0b0c10; --panel:#101218; --ink:#f2f4f8; --muted:#9aa3b2; --line:#20242e;
-    --accent:#6a5cff; --pink:#e6398c; --teal:#26d0ce; --amber:#ffb454;
-    --maxw:1080px;
+    --bg:#0b0c10; --panel:#101218; --panel2:#0e1015; --ink:#f2f4f8; --muted:#9aa3b2; --line:#20242e;
+    --accent:#6a5cff; --pink:#e6398c; --teal:#26d0ce; --amber:#ffb454; --maxw:1080px;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{margin:0; font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     color:var(--ink); background:var(--bg); overflow-x:hidden}
-  a{color:inherit}
   .wrap{width:100%; max-width:var(--maxw); margin:0 auto; padding:0 24px}
-  .kicker{font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin:0 0 14px}
+  .kicker{font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); margin:0 0 14px; display:flex; align-items:center; gap:10px}
+  .num{font-family:ui-monospace,Menlo,monospace; font-weight:700; color:var(--ink)}
 
-  /* nav */
-  nav{position:sticky; top:0; z-index:20; backdrop-filter:blur(10px);
-    background:rgba(11,12,16,.72); border-bottom:1px solid var(--line)}
+  nav{position:sticky; top:0; z-index:20; backdrop-filter:blur(10px); background:rgba(11,12,16,.72); border-bottom:1px solid var(--line)}
   .nav{display:flex; align-items:center; justify-content:space-between; padding:14px 24px; max-width:var(--maxw); margin:0 auto}
   .brand{font-weight:800; letter-spacing:-.02em; text-decoration:none; font-size:17px}
   .brand .dot{color:var(--accent)}
@@ -35,16 +32,13 @@
   .nav-links a:hover{color:var(--ink)}
   .nav-links .btn{color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:7px 13px}
   .nav-links .btn:hover{border-color:var(--accent)}
-  @media(max-width:560px){.nav-links a:not(.btn){display:none}}
+  @media(max-width:620px){.nav-links a:not(.btn){display:none}}
 
-  /* hero */
-  header{position:relative; padding:19vh 0 12vh}
+  header{position:relative; padding:18vh 0 12vh}
   header::before{content:""; position:absolute; inset:-30% 0 auto -15%; height:80vh; z-index:-1; pointer-events:none;
-    background:
-      radial-gradient(40% 55% at 26% 30%, rgba(106,92,255,.24), transparent 70%),
+    background:radial-gradient(40% 55% at 26% 30%, rgba(106,92,255,.24), transparent 70%),
       radial-gradient(38% 50% at 74% 42%, rgba(230,57,140,.18), transparent 70%),
-      radial-gradient(42% 55% at 55% 82%, rgba(38,208,206,.15), transparent 72%);
-    filter:blur(8px)}
+      radial-gradient(42% 55% at 55% 82%, rgba(38,208,206,.15), transparent 72%); filter:blur(8px)}
   .eyebrow{font-size:13px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin:0 0 18px}
   .mark{margin:0; line-height:.96; font-weight:800; letter-spacing:-.03em; font-size:clamp(46px,11vw,104px);
     background:linear-gradient(100deg,#6a5cff,#26d0ce,#e6398c,#ffb454,#6a5cff); background-size:280% 100%;
@@ -57,48 +51,61 @@
     background:var(--accent); color:#fff; font-weight:600; font-size:15px; border-radius:9px; padding:11px 18px}
   .cta:hover{filter:brightness(1.08)}
 
-  /* sections */
   section{padding:9vh 0; border-top:1px solid var(--line)}
   .h2{font-size:clamp(26px,4vw,38px); font-weight:750; letter-spacing:-.02em; margin:6px 0 0}
-  .lede{color:var(--muted); margin:14px 0 0; max-width:58ch}
+  .lede{color:var(--muted); margin:16px 0 0; max-width:60ch}
 
-  /* offerings */
+  /* overview cards */
   .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:38px}
-  .card{background:var(--panel); border:1px solid var(--line); border-radius:15px; padding:26px 24px 28px;
-    transition:transform .15s, border-color .15s}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:15px; padding:26px 24px 28px; text-decoration:none; color:inherit; display:block; transition:transform .15s, border-color .15s}
   .card:hover{transform:translateY(-3px); border-color:#2f3646}
   .glyph{width:40px; height:40px; border-radius:11px; display:grid; place-items:center; margin-bottom:16px}
   .card h3{margin:0 0 8px; font-size:19px; letter-spacing:-.01em}
   .card p{margin:0; color:var(--muted); font-size:14.5px}
-  .feat{list-style:none; margin:16px 0 0; padding:0; display:flex; flex-wrap:wrap; gap:8px}
-  .feat li{font-size:12.5px; color:#cfd6e2; border:1px solid var(--line); border-radius:999px; padding:5px 11px}
+  .more{margin:16px 0 0; font-size:13.5px; color:#c7ccd8}
   .c-vision .glyph{background:rgba(106,92,255,.16); color:#a99dff}
   .c-signage .glyph{background:rgba(230,57,140,.16); color:#ff8bbd}
   .c-delivery .glyph{background:rgba(38,208,206,.15); color:#7fe7e5}
 
-  /* integrated band */
+  /* detailed offering sections */
+  .off{scroll-margin-top:72px}
+  .off .kicker .num{color:var(--acc, var(--ink))}
+  .off-v{--acc:#a99dff} .off-s{--acc:#ff8bbd} .off-d{--acc:#7fe7e5}
+  .off .bar{width:44px; height:3px; border-radius:3px; background:var(--acc); margin:0 0 20px}
+  .caplist{display:grid; grid-template-columns:1fr 1fr; gap:14px 26px; margin-top:34px}
+  @media(max-width:640px){.caplist{grid-template-columns:1fr}}
+  .cap{display:flex; gap:12px; align-items:flex-start}
+  .cap i{flex:none; width:22px; height:22px; margin-top:2px; border-radius:6px; display:grid; place-items:center;
+    background:color-mix(in srgb, var(--acc) 18%, transparent); color:var(--acc); font-style:normal; font-size:13px; font-weight:800}
+  .cap b{display:block; font-size:15px; letter-spacing:-.01em}
+  .cap span{font-size:13.5px; color:var(--muted)}
+  .ideal{margin-top:34px}
+  .ideal .kicker{margin-bottom:10px}
+  .ideal ul{list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:8px}
+  .ideal li{font-size:13px; color:#cfd6e2; border:1px solid var(--line); border-radius:999px; padding:6px 13px}
+
+  /* approach */
   .band{display:grid; grid-template-columns:1.1fr 1fr; gap:30px; align-items:center}
   @media(max-width:720px){.band{grid-template-columns:1fr}}
   .band .big{font-size:clamp(22px,3.2vw,30px); font-weight:700; letter-spacing:-.02em; margin:10px 0 0}
   .steps{display:flex; flex-wrap:wrap; gap:10px; margin-top:8px}
   .step{border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--panel); flex:1 1 130px}
-  .step b{display:block; font-size:14px}
-  .step span{font-size:12.5px; color:var(--muted)}
+  .step b{display:block; font-size:14px} .step span{font-size:12.5px; color:var(--muted)}
 
-  /* contact */
-  #contact{text-align:left}
+  .sectors{display:flex; flex-wrap:wrap; gap:12px; margin-top:34px; list-style:none; padding:0}
+  .sectors li{font-size:15px; font-weight:600; color:#dfe4ee; border:1px solid var(--line);
+    border-radius:11px; padding:12px 18px; background:var(--panel); transition:border-color .14s}
+  .sectors li:hover{border-color:var(--accent)}
+
   .contact-h{font-size:clamp(26px,4.4vw,40px); font-weight:750; letter-spacing:-.02em; margin:6px 0 0; max-width:20ch}
   .mailbtn{display:inline-flex; gap:9px; align-items:center; margin-top:26px; text-decoration:none;
     font-family:ui-monospace,Menlo,monospace; font-size:16px; color:#fff;
     background:linear-gradient(100deg,var(--accent),var(--pink)); border-radius:10px; padding:13px 20px; font-weight:600}
   .mailbtn:hover{filter:brightness(1.08)}
 
-  /* footer */
   footer{border-top:1px solid var(--line)}
-  .foot{display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; justify-content:space-between;
-    padding:26px 0; color:var(--muted); font-size:14px}
-  .foot a{color:var(--muted); text-decoration:none}
-  .foot a:hover{color:var(--ink)}
+  .foot{display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; justify-content:space-between; padding:26px 0; color:var(--muted); font-size:14px}
+  .foot a{color:var(--muted); text-decoration:none} .foot a:hover{color:var(--ink)}
   .foot .mono{font-family:ui-monospace,Menlo,monospace}
 </style>
 </head>
@@ -107,8 +114,9 @@
 <nav><div class="nav">
   <a class="brand" href="#top">look interactive<span class="dot">.</span></a>
   <div class="nav-links">
-    <a href="#offerings">Offerings</a>
-    <a href="#approach">Approach</a>
+    <a href="#vision">Vision</a>
+    <a href="#signage">Signage</a>
+    <a href="#delivery">Delivery</a>
     <a class="btn" href="#contact">Get in touch</a>
   </div>
 </div></nav>
@@ -126,29 +134,88 @@
   <p class="kicker">Offerings</p>
   <h2 class="h2">Three parts of one system</h2>
   <p class="lede">The experience, the display, and the delivery — designed to work together, available on their own.</p>
-
   <div class="cards">
-    <div class="card c-vision">
+    <a class="card c-vision" href="#vision">
       <div class="glyph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
       <h3>Vision &amp; Dynamics</h3>
-      <p>Interactive light-field experiences — glasses-free, headset-free imagery that holds
-        depth and shifts as you move. Visuals that respond to the viewer.</p>
-      <ul class="feat"><li>Glasses-free 3D</li><li>Motion-reactive</li><li>Custom content</li></ul>
-    </div>
-    <div class="card c-signage">
+      <p>Interactive light-field experiences — glasses-free imagery that holds depth and shifts as you move.</p>
+      <p class="more">Learn more →</p>
+    </a>
+    <a class="card c-signage" href="#signage">
       <div class="glyph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
       <h3>Digital Signage</h3>
-      <p>Managed digital signage, end to end — from a single storefront screen to a networked
-        fleet. Hardware, layout, scheduling, and remote management.</p>
-      <ul class="feat"><li>Single screens → networks</li><li>Remote management</li><li>Design + scheduling</li></ul>
-    </div>
-    <div class="card c-delivery">
+      <p>Managed digital signage, end to end — from a single screen to a networked fleet.</p>
+      <p class="more">Learn more →</p>
+    </a>
+    <a class="card c-delivery" href="#delivery">
       <div class="glyph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 7l10-5 10 5M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
       <h3>Content Delivery</h3>
-      <p>A content-delivery system that puts the right content on the right screen at the right
-        time — centralized, scheduled, and updated in real time.</p>
-      <ul class="feat"><li>Centralized control</li><li>Real-time updates</li><li>Any endpoint</li></ul>
-    </div>
+      <p>A content-delivery system that puts the right content on the right screen at the right time.</p>
+      <p class="more">Learn more →</p>
+    </a>
+  </div>
+</div></section>
+
+<section id="vision" class="off off-v"><div class="wrap">
+  <p class="kicker"><span class="num">01</span> Vision &amp; Dynamics</p>
+  <div class="bar"></div>
+  <h2 class="h2">Imagery with depth — that moves with you</h2>
+  <p class="lede">Glasses-free, headset-free visuals that carry real depth and shift naturally as the
+    viewer moves. We author the scene, render the light field, and drive the display — turning flat
+    content into something you look <em>around</em>, not just <em>at</em>.</p>
+  <div class="caplist">
+    <div class="cap"><i>✓</i><div><b>Glasses-free 3D</b><span>True light-field depth — no glasses, no headset.</span></div></div>
+    <div class="cap"><i>✓</i><div><b>Motion-reactive</b><span>Parallax and reveals that respond to viewpoint and gaze.</span></div></div>
+    <div class="cap"><i>✓</i><div><b>Interactive</b><span>Touch, gesture, and sensor-driven content.</span></div></div>
+    <div class="cap"><i>✓</i><div><b>Custom pipeline</b><span>From 3D scenes, CAD / product models, video, and live data.</span></div></div>
+    <div class="cap"><i>✓</i><div><b>Any format</b><span>Desktop pieces to large-format installations.</span></div></div>
+    <div class="cap"><i>✓</i><div><b>Turnkey content</b><span>We design, produce, and keep the experience fresh.</span></div></div>
+  </div>
+  <div class="ideal">
+    <p class="kicker">Ideal for</p>
+    <ul><li>Retail showpieces</li><li>Museums &amp; exhibits</li><li>Brand activations</li><li>Product visualization</li><li>Trade shows</li></ul>
+  </div>
+</div></section>
+
+<section id="signage" class="off off-s"><div class="wrap">
+  <p class="kicker"><span class="num">02</span> Digital Signage</p>
+  <div class="bar"></div>
+  <h2 class="h2">From one screen to a whole network</h2>
+  <p class="lede">Managed digital signage, handled end to end. Whether it's a single storefront display
+    or hundreds of screens across sites, we cover the hardware, the design, the scheduling, and the
+    day-to-day management — so your screens always show the right thing.</p>
+  <div class="caplist">
+    <div class="cap"><i>✓</i><div><b>Any scale</b><span>A single screen to multi-site fleets.</span></div></div>
+    <div class="cap"><i>✓</i><div><b>Remote management</b><span>Monitor health, uptime, and playback from anywhere.</span></div></div>
+    <div class="cap"><i>✓</i><div><b>Design &amp; templates</b><span>Layouts, motion, and brand-consistent content.</span></div></div>
+    <div class="cap"><i>✓</i><div><b>Scheduling &amp; dayparting</b><span>The right content by time, place, and trigger.</span></div></div>
+    <div class="cap"><i>✓</i><div><b>Live data</b><span>Menus, pricing, wayfinding, feeds, and social.</span></div></div>
+    <div class="cap"><i>✓</i><div><b>Hardware &amp; support</b><span>Provisioning, install, and ongoing support.</span></div></div>
+  </div>
+  <div class="ideal">
+    <p class="kicker">Ideal for</p>
+    <ul><li>Retail &amp; hospitality</li><li>QSR menu boards</li><li>Corporate lobbies</li><li>Wayfinding</li><li>Events &amp; venues</li></ul>
+  </div>
+</div></section>
+
+<section id="delivery" class="off off-d"><div class="wrap">
+  <p class="kicker"><span class="num">03</span> Content Delivery</p>
+  <div class="bar"></div>
+  <h2 class="h2">The right content, everywhere, in real time</h2>
+  <p class="lede">The system underneath it all: a content-delivery platform that gets the right content to
+    the right screen at the right moment. Manage everything from one place, schedule with rules, and push
+    updates instantly — across our displays, your existing screens, and beyond.</p>
+  <div class="caplist">
+    <div class="cap"><i>✓</i><div><b>Centralized library</b><span>One place to manage all your content.</span></div></div>
+    <div class="cap"><i>✓</i><div><b>Rules &amp; scheduling</b><span>Dayparting, playlists, and conditional playout.</span></div></div>
+    <div class="cap"><i>✓</i><div><b>Real-time push</b><span>Instant updates across every endpoint.</span></div></div>
+    <div class="cap"><i>✓</i><div><b>Any endpoint</b><span>Our light-field displays, third-party players, and web.</span></div></div>
+    <div class="cap"><i>✓</i><div><b>Resilient</b><span>Offline caching and sync keep screens playing.</span></div></div>
+    <div class="cap"><i>✓</i><div><b>Proof of play</b><span>Analytics and reporting on what showed where.</span></div></div>
+  </div>
+  <div class="ideal">
+    <p class="kicker">Ideal for</p>
+    <ul><li>Multi-location content ops</li><li>Powering signage networks</li><li>Feeding the displays</li><li>Agencies &amp; integrators</li></ul>
   </div>
 </div></section>
 
@@ -157,14 +224,26 @@
     <p class="kicker">Approach</p>
     <p class="big">One integrated stack — from the pixels to the platform.</p>
     <p class="lede">Start with a single screen or a full deployment. The same platform designs the
-      experience, drives the display, and delivers the content — so what you see stays sharp,
-      current, and in sync.</p>
+      experience, drives the display, and delivers the content — so what you see stays sharp, current, and in sync.</p>
   </div>
   <div class="steps">
     <div class="step"><b>1 · Design</b><span>Experience + content</span></div>
     <div class="step"><b>2 · Display</b><span>Screens + light-field</span></div>
     <div class="step"><b>3 · Deliver</b><span>Schedule + update live</span></div>
   </div>
+</div></section>
+
+<section id="customers"><div class="wrap">
+  <p class="kicker">Who we work with</p>
+  <h2 class="h2">Trusted across industries</h2>
+  <p class="lede">Our displays, signage, and delivery platform are relied on by teams spanning gaming,
+    digital-signage, automotive, and industrial technology — from casino floors to global enterprises.</p>
+  <ul class="sectors">
+    <li>Casino &amp; gaming</li>
+    <li>Signage platforms</li>
+    <li>Automotive</li>
+    <li>Industrial &amp; enterprise</li>
+  </ul>
 </div></section>
 
 <section id="contact"><div class="wrap">

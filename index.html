@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Look Interactive — vision &amp; dynamics, digital signage, content delivery</title>
-<meta name="description" content="Look Interactive — interactive light-field experiences, managed digital signage, and a content-delivery system. Vision & dynamics, end to end.">
+<meta name="description" content="Look Interactive — interactive light-field experiences, managed digital signage, a content-delivery system, and AI vision inferencing for audience-aware, reactive displays.">
 <meta property="og:title" content="Look Interactive">
-<meta property="og:description" content="Vision & dynamics, digital signage, and content delivery — one integrated stack.">
+<meta property="og:description" content="Vision & dynamics, digital signage, content delivery, and AI vision inferencing — one integrated stack.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://look-interactive.com">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='11' fill='none' stroke='%23e6398c' stroke-width='3'/><circle cx='16' cy='16' r='4' fill='%236a5cff'/></svg>">
@@ -97,6 +97,20 @@
     border-radius:11px; padding:12px 18px; background:var(--panel); transition:border-color .14s}
   .sectors li:hover{border-color:var(--accent)}
 
+  .ai .ai-panel{position:relative; border-radius:18px; padding:40px 34px;
+    background:radial-gradient(120% 140% at 0% 0%, rgba(106,92,255,.10), transparent 60%), var(--panel2)}
+  .ai .ai-panel::before{content:""; position:absolute; inset:0; border-radius:18px; padding:1px; pointer-events:none;
+    background:linear-gradient(120deg, rgba(106,92,255,.6), rgba(38,208,206,.5), rgba(230,57,140,.5));
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude}
+  .ai-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(238px,1fr)); gap:18px 26px; margin-top:30px}
+  .ai-item b{display:block; font-size:15px; letter-spacing:-.01em}
+  .ai-item span{font-size:13.5px; color:var(--muted)}
+  .soon{margin:28px 0 0; padding-top:24px; border-top:1px solid var(--line); color:#d4dae6;
+    font-size:14.5px; display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+  .badge{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#fff;
+    background:linear-gradient(100deg,var(--accent),var(--pink)); border-radius:999px; padding:5px 11px; white-space:nowrap}
+
   .contact-h{font-size:clamp(26px,4.4vw,40px); font-weight:750; letter-spacing:-.02em; margin:6px 0 0; max-width:20ch}
   .mailbtn{display:inline-flex; gap:9px; align-items:center; margin-top:26px; text-decoration:none;
     font-family:ui-monospace,Menlo,monospace; font-size:16px; color:#fff;
@@ -117,6 +131,7 @@
     <a href="#vision">Vision</a>
     <a href="#signage">Signage</a>
     <a href="#delivery">Delivery</a>
+    <a href="#ai">AI</a>
     <a class="btn" href="#contact">Get in touch</a>
   </div>
 </div></nav>
@@ -217,6 +232,22 @@
     <ul><li>Multi-location content ops</li><li>Powering signage networks</li><li>Feeding the displays</li><li>Agencies &amp; integrators</li></ul>
   </div>
 </div></section>
+
+<section id="ai" class="ai"><div class="wrap"><div class="ai-panel">
+  <p class="kicker">Intelligence</p>
+  <h2 class="h2">Displays that see — and respond</h2>
+  <p class="lede">We embrace AI at the edge. Vision inferencing lets a display understand its audience
+    in real time — how many are watching and how long they look — then adapt what it shows to match.</p>
+  <div class="ai-grid">
+    <div class="ai-item"><b>Audience counts</b><span>Real-time people &amp; traffic counts from on-device vision.</span></div>
+    <div class="ai-item"><b>Attention &amp; dwell</b><span>Measure attention spans, gaze, and engagement time.</span></div>
+    <div class="ai-item"><b>Reactive displays</b><span>Content adapts to who is watching and how engaged they are.</span></div>
+    <div class="ai-item"><b>Vision inferencing</b><span>AI models run at the edge — fast, and privacy-conscious.</span></div>
+    <div class="ai-item"><b>Live triggers</b><span>Inference feeds the delivery system to switch content instantly.</span></div>
+    <div class="ai-item"><b>Looks into insight</b><span>Attention becomes analytics and proof of engagement.</span></div>
+  </div>
+  <p class="soon"><span class="badge">Coming soon</span> Generative AI — create and adapt content on the fly, tuned to the audience and the moment.</p>
+</div></div></section>
 
 <section id="approach"><div class="wrap band">
   <div>

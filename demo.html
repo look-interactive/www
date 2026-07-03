@@ -41,6 +41,8 @@
   button{font:inherit; font-size:14px; font-weight:600; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:10px 15px; cursor:pointer; transition:border-color .14s}
   button:hover{border-color:var(--accent)}
   button.primary{background:linear-gradient(100deg,var(--accent),var(--pink)); border:none; color:#fff}
+  button:disabled{opacity:.45; cursor:not-allowed}
+  button:disabled:hover{border-color:var(--line)}
   .status{margin-top:16px; font-size:13.5px; color:var(--muted); display:grid; gap:6px}
   .status b{color:var(--ink); font-weight:600}
   .status .row{display:flex; gap:8px}
@@ -87,10 +89,10 @@
     </div>
     <div>
       <div class="controls">
-        <button class="primary" id="pip">Picture-in-Picture</button>
-        <button id="playpause">Pause</button>
+        <button class="primary" id="pip" disabled>Picture-in-Picture</button>
+        <button id="playpause" disabled>Play</button>
         <button id="spin">Auto-spin: on</button>
-        <button id="reencode">Re-encode clip</button>
+        <button id="reencode" title="Capture ~4s of the source and run it through the codec again — encode, then decode back to the video and the cube">Re-encode clip</button>
       </div>
       <div class="status">
         <div class="row"><span>Background</span><b id="s-bg">initialising…</b></div>
@@ -165,6 +167,7 @@
     rec.onstop=function(){
       try{ stream.getTracks().forEach(function(t){t.stop();}); }catch(e){}
       var blob=new Blob(chunks,{type:mime||'video/webm'});
+      if(vid.src && vid.src.indexOf('blob:')===0){ try{ URL.revokeObjectURL(vid.src); }catch(e){} }
       vid.srcObject=null; vid.src=URL.createObjectURL(blob); vid.loop=true; vid.play().catch(function(){});
       setStatus('codec','decoding '+(mime.split(';')[0]||'webm')+' '+(mime.indexOf('vp9')>=0?'(VP9)':mime.indexOf('vp8')>=0?'(VP8)':mime.indexOf('h264')>=0?'(H.264)':'')+' → GPU');
     };
@@ -341,9 +344,14 @@
   });
   vid.addEventListener('enterpictureinpicture',function(){ setStatus('pip','active'); });
   vid.addEventListener('leavepictureinpicture',function(){ setStatus('pip','idle'); });
-  $('playpause').addEventListener('click',function(){ if(vid.paused){ vid.play(); this.textContent='Pause'; } else { vid.pause(); this.textContent='Play'; } });
+  function readyControls(){ $('playpause').disabled=false; if(document.pictureInPictureEnabled) $('pip').disabled=false; }
+  vid.addEventListener('loadeddata', readyControls);
+  vid.addEventListener('canplay', readyControls);
+  vid.addEventListener('playing', function(){ $('playpause').textContent='Pause'; });
+  vid.addEventListener('pause', function(){ $('playpause').textContent='Play'; });
+  $('playpause').addEventListener('click',function(){ if(vid.paused){ vid.play().catch(function(){}); } else { vid.pause(); } });
   $('spin').addEventListener('click',function(){ autoSpin=!autoSpin; this.textContent='Auto-spin: '+(autoSpin?'on':'off'); });
-  $('reencode').addEventListener('click',function(){ setStatus('codec','re-encoding …'); startPipeline(); });
+  $('reencode').addEventListener('click',function(){ var b=this; b.disabled=true; setStatus('codec','re-encoding …'); startPipeline(); setTimeout(function(){ b.disabled=false; }, 4500); });
 })();
 </script>
 

@@ -97,6 +97,12 @@
     border-radius:11px; padding:12px 18px; background:var(--panel); transition:border-color .14s}
   .sectors li:hover{border-color:var(--accent)}
 
+  .partners{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-top:34px; list-style:none; padding:0}
+  .partners li{display:grid; place-items:center; text-align:center; font-size:15px; font-weight:650;
+    color:#e7ebf3; letter-spacing:-.01em; border:1px solid var(--line); border-radius:12px; padding:22px 14px;
+    background:var(--panel); transition:border-color .14s, transform .14s}
+  .partners li:hover{border-color:var(--accent); transform:translateY(-2px)}
+
   .ai .ai-panel{position:relative; border-radius:18px; padding:40px 34px;
     background:radial-gradient(120% 140% at 0% 0%, rgba(106,92,255,.10), transparent 60%), var(--panel2)}
   .ai .ai-panel::before{content:""; position:absolute; inset:0; border-radius:18px; padding:1px; pointer-events:none;
@@ -273,6 +279,20 @@
     <li>Signage platforms</li>
     <li>Automotive</li>
     <li>Industrial &amp; enterprise</li>
+  </ul>
+</div></section>
+
+<section id="partners"><div class="wrap">
+  <p class="kicker">Technology enablement partners</p>
+  <h2 class="h2">Built with the best in silicon and AI</h2>
+  <p class="lede">We work hand in hand with the platforms that power our displays — from single-board
+    computers and SoCs to AI runtimes.</p>
+  <ul class="partners">
+    <li>Libre Computer</li>
+    <li>Gaema AI</li>
+    <li>Amlogic</li>
+    <li>MediaTek</li>
+    <li>Rockchip</li>
   </ul>
 </div></section>
 

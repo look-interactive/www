@@ -34,11 +34,18 @@
   .nav-links .btn:hover{border-color:var(--accent)}
   @media(max-width:620px){.nav-links a:not(.btn){display:none}}
 
-  header{position:relative; padding:18vh 0 12vh}
-  header::before{content:""; position:absolute; inset:-30% 0 auto -15%; height:80vh; z-index:-1; pointer-events:none;
+  header{position:relative; padding:18vh 0 12vh; overflow:hidden}
+  /* fallback glow (shows if the GPU canvas can't init) */
+  header::before{content:""; position:absolute; inset:-30% 0 auto -15%; height:80vh; z-index:0; pointer-events:none;
     background:radial-gradient(40% 55% at 26% 30%, rgba(106,92,255,.24), transparent 70%),
       radial-gradient(38% 50% at 74% 42%, rgba(230,57,140,.18), transparent 70%),
       radial-gradient(42% 55% at 55% 82%, rgba(38,208,206,.15), transparent 72%); filter:blur(8px)}
+  #gpu{position:absolute; inset:0; width:100%; height:100%; z-index:1; display:block; opacity:0; transition:opacity 1.2s ease}
+  #gpu.on{opacity:1}
+  /* fade the shader into the page + keep hero text readable */
+  header::after{content:""; position:absolute; inset:0; z-index:2; pointer-events:none;
+    background:linear-gradient(180deg, rgba(11,12,16,.10) 0%, rgba(11,12,16,0) 42%, rgba(11,12,16,.82) 90%, var(--bg) 100%)}
+  header .wrap{position:relative; z-index:3}
   .eyebrow{font-size:13px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin:0 0 18px}
   .mark{margin:0; line-height:.96; font-weight:800; letter-spacing:-.03em; font-size:clamp(46px,11vw,104px);
     background:linear-gradient(100deg,#6a5cff,#26d0ce,#e6398c,#ffb454,#6a5cff); background-size:280% 100%;
@@ -143,7 +150,9 @@
   </div>
 </div></nav>
 
-<header id="top"><div class="wrap">
+<header id="top">
+  <canvas id="gpu" aria-hidden="true"></canvas>
+  <div class="wrap">
   <h1 class="mark">look&nbsp;interactive</h1>
   <p class="tag">The dynamics of vision.</p>
   <p class="sub">Where vision meets dynamics — how you look changes what you see. We craft
@@ -308,6 +317,119 @@
   <span>© Look Interactive</span>
   <a class="mono" href="mailto:hello@look-interactive.com">hello@look-interactive.com</a>
 </div></footer>
+
+<script>
+/* Animated, mouse-reactive "light-field" hero shader.
+   Progressive enhancement: WebGPU (WGSL) -> WebGL2 -> WebGL1 -> CSS glow. */
+(function(){
+  var cv=document.getElementById('gpu'); if(!cv) return;
+  var DPR=Math.min(window.devicePixelRatio||1,2);
+  var W=1,H=1, active=true, inView=true;
+  var mouse={x:.5,y:.5}, target={x:.5,y:.5};
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.addEventListener('pointermove',function(e){ target.x=e.clientX/window.innerWidth; target.y=1-e.clientY/window.innerHeight; },{passive:true});
+  document.addEventListener('visibilitychange',function(){ active=!document.hidden&&inView; });
+  try{ new IntersectionObserver(function(es){ inView=es[0].isIntersecting; active=!document.hidden&&inView; }).observe(cv); }catch(e){}
+  function resize(){ var r=cv.getBoundingClientRect(); W=Math.max(1,Math.floor(r.width*DPR)); H=Math.max(1,Math.floor(r.height*DPR)); cv.width=W; cv.height=H; }
+  function ease(){ mouse.x+=(target.x-mouse.x)*0.05; mouse.y+=(target.y-mouse.y)*0.05; }
+
+  var GLSL_BODY=[
+    "vec3 iri(float t){ t=fract(t);",
+    "  vec3 A=vec3(0.42,0.34,1.0), B=vec3(0.92,0.25,0.62), C=vec3(0.18,0.85,0.82);",
+    "  float s=t*3.0;",
+    "  if(s<1.0) return mix(A,B,s); else if(s<2.0) return mix(B,C,s-1.0); return mix(C,A,s-2.0); }",
+    "vec3 field(vec2 frag){",
+    "  vec2 uv=(frag-0.5*uRes)/uRes.y; uv+=(uMouse-0.5)*0.20;",
+    "  vec2 p=uv*1.4; float t=uT*0.08;",
+    "  for(int i=0;i<4;i++){ float fi=float(i);",
+    "    p+=vec2(0.32*sin(1.7*p.y+t+fi*1.1), 0.32*cos(1.7*p.x-t*0.9+fi*1.3)); }",
+    "  float bands=sin(p.x*3.2+p.y*2.2-t*2.0)*cos(p.x*2.2-p.y*3.2+t*1.4);",
+    "  float acc=0.5+0.5*bands;",
+    "  float hue=0.55+0.45*acc+0.30*p.x+0.18*uv.y-t*0.30;",
+    "  vec3 col=iri(hue)*(0.13+0.52*acc*acc);",
+    "  col+=vec3(0.02,0.022,0.032);",
+    "  col*=smoothstep(1.6,0.1,length(uv)*0.9); return col; }"
+  ].join("\n");
+
+  function tryGL(){
+    var gl=cv.getContext('webgl2'), isGL2=!!gl;
+    if(!gl) gl=cv.getContext('webgl')||cv.getContext('experimental-webgl');
+    if(!gl) return false;
+    var vs=isGL2?"#version 300 es\nin vec2 pos;void main(){gl_Position=vec4(pos,0.0,1.0);}"
+                :"attribute vec2 pos;void main(){gl_Position=vec4(pos,0.0,1.0);}";
+    var head=isGL2?"#version 300 es\nprecision highp float;out vec4 O;uniform vec2 uRes;uniform float uT;uniform vec2 uMouse;\n"
+                  :"precision highp float;uniform vec2 uRes;uniform float uT;uniform vec2 uMouse;\n";
+    var outl=isGL2?"O=vec4(field(gl_FragCoord.xy),1.0);":"gl_FragColor=vec4(field(gl_FragCoord.xy),1.0);";
+    var fs=head+GLSL_BODY+"\nvoid main(){"+outl+"}";
+    function sh(ty,src){ var s=gl.createShader(ty); gl.shaderSource(s,src); gl.compileShader(s); if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw gl.getShaderInfoLog(s); return s; }
+    var p=gl.createProgram();
+    try{ gl.attachShader(p,sh(gl.VERTEX_SHADER,vs)); gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs)); }catch(e){ return false; }
+    gl.linkProgram(p); if(!gl.getProgramParameter(p,gl.LINK_STATUS)) return false;
+    var b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b);
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+    var loc=gl.getAttribLocation(p,'pos'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+    gl.useProgram(p);
+    var uR=gl.getUniformLocation(p,'uRes'),uT=gl.getUniformLocation(p,'uT'),uM=gl.getUniformLocation(p,'uMouse');
+    var t0=performance.now();
+    (function frame(now){ if(active){ ease(); gl.viewport(0,0,W,H); gl.uniform2f(uR,W,H); gl.uniform1f(uT,(now-t0)*0.001*(reduce?0.0:1.0)); gl.uniform2f(uM,mouse.x,mouse.y); gl.drawArrays(gl.TRIANGLES,0,3); } requestAnimationFrame(frame); })(t0);
+    return true;
+  }
+
+  function tryWebGPU(){
+    if(!navigator.gpu) return Promise.resolve(false);
+    return navigator.gpu.requestAdapter().then(function(ad){
+      if(!ad) return false;
+      return ad.requestDevice().then(function(device){
+        var ctx=cv.getContext('webgpu'); if(!ctx) return false;
+        var fmt=navigator.gpu.getPreferredCanvasFormat();
+        ctx.configure({device:device,format:fmt,alphaMode:'opaque'});
+        var wgsl=[
+          "struct U { res:vec2f, t:f32, pad:f32, mouse:vec2f };",
+          "@group(0) @binding(0) var<uniform> u:U;",
+          "@vertex fn vs(@builtin(vertex_index) i:u32)->@builtin(position) vec4f {",
+          "  var p=array<vec2f,3>(vec2f(-1.,-1.),vec2f(3.,-1.),vec2f(-1.,3.)); return vec4f(p[i],0.,1.); }",
+          "fn iri(tt:f32)->vec3f { let t=fract(tt);",
+          "  let A=vec3f(0.42,0.34,1.0); let B=vec3f(0.92,0.25,0.62); let C=vec3f(0.18,0.85,0.82);",
+          "  let s=t*3.0; if(s<1.0){return mix(A,B,s);} else if(s<2.0){return mix(B,C,s-1.0);} return mix(C,A,s-2.0); }",
+          "@fragment fn fs(@builtin(position) frag:vec4f)->@location(0) vec4f {",
+          "  let uv=(frag.xy-0.5*u.res)/u.res.y + (u.mouse-0.5)*0.20;",
+          "  var p=uv*1.4; let t=u.t*0.08;",
+          "  for(var i=0;i<4;i=i+1){ let fi=f32(i);",
+          "    p=p+vec2f(0.32*sin(1.7*p.y+t+fi*1.1), 0.32*cos(1.7*p.x-t*0.9+fi*1.3)); }",
+          "  let bands=sin(p.x*3.2+p.y*2.2-t*2.0)*cos(p.x*2.2-p.y*3.2+t*1.4);",
+          "  let acc=0.5+0.5*bands;",
+          "  let hue=0.55+0.45*acc+0.30*p.x+0.18*uv.y-t*0.30;",
+          "  var col=iri(hue)*(0.13+0.52*acc*acc);",
+          "  col=col+vec3f(0.02,0.022,0.032);",
+          "  col=col*smoothstep(1.6,0.1,length(uv)*0.9); return vec4f(col,1.0); }"
+        ].join("\n");
+        var mod=device.createShaderModule({code:wgsl});
+        return mod.getCompilationInfo().then(function(ci){
+          for(var k=0;k<ci.messages.length;k++){ if(ci.messages[k].type==='error') return false; }
+          var pipe=device.createRenderPipeline({layout:'auto',vertex:{module:mod,entryPoint:'vs'},fragment:{module:mod,entryPoint:'fs',targets:[{format:fmt}]},primitive:{topology:'triangle-list'}});
+          var ubuf=device.createBuffer({size:32,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});
+          var bind=device.createBindGroup({layout:pipe.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:ubuf}}]});
+          var t0=performance.now(), arr=new Float32Array(8);
+          (function frame(now){
+            if(active){ ease(); arr[0]=W;arr[1]=H;arr[2]=(now-t0)*0.001*(reduce?0.0:1.0);arr[4]=mouse.x;arr[5]=mouse.y;
+              device.queue.writeBuffer(ubuf,0,arr);
+              var enc=device.createCommandEncoder();
+              var pass=enc.beginRenderPass({colorAttachments:[{view:ctx.getCurrentTexture().createView(),clearValue:{r:0,g:0,b:0,a:1},loadOp:'clear',storeOp:'store'}]});
+              pass.setPipeline(pipe); pass.setBindGroup(0,bind); pass.draw(3); pass.end();
+              device.queue.submit([enc.finish()]); }
+            requestAnimationFrame(frame);
+          })(t0);
+          return true;
+        });
+      });
+    }).catch(function(){ return false; });
+  }
+
+  function start(){ resize(); window.addEventListener('resize',resize,{passive:true});
+    tryWebGPU().then(function(ok){ if(!ok) ok=tryGL(); if(ok) cv.classList.add('on'); }); }
+  if(document.readyState!=='loading') start(); else document.addEventListener('DOMContentLoaded',start);
+})();
+</script>
 
 </body>
 </html>

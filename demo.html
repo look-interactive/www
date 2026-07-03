@@ -62,13 +62,15 @@
 <header class="wrap">
   <p class="kicker">Live tech demo</p>
   <h1>The stack, running in your browser</h1>
-  <p class="lede">No plugins, no uploads. This page renders a 3D scene on the GPU, encodes a video clip
-    and decodes it back with a real codec, maps that decoded video onto the spinning cube, and can pop
-    it out into Picture-in-Picture — the same pipeline behind the displays we drive, live on your device.</p>
+  <p class="lede">No plugins, no uploads. This page renders a 3D scene on the GPU and can put your
+    webcam — with your permission, kept entirely on your device — onto the spinning cube, round-trip it
+    through a real codec (encode + decode), and pop it into Picture-in-Picture. The same pipeline behind
+    the displays we drive, running live on your machine.</p>
   <div class="badges" id="badges">
     <span class="badge" id="b-webgpu"><span class="dotmark"></span>WebGPU</span>
     <span class="badge" id="b-webgl2"><span class="dotmark"></span>WebGL2</span>
     <span class="badge" id="b-webgl"><span class="dotmark"></span>WebGL</span>
+    <span class="badge" id="b-cam"><span class="dotmark"></span>Camera</span>
     <span class="badge" id="b-pip"><span class="dotmark"></span>Picture-in-Picture</span>
     <span class="badge" id="b-rec"><span class="dotmark"></span>Codec (MediaRecorder)</span>
   </div>
@@ -79,24 +81,27 @@
     <canvas id="bg"></canvas>
     <canvas id="scene"></canvas>
     <div class="rbadge" id="rbadge">bg: … · 3D: …</div>
-    <div class="hint">drag to rotate · the cube is textured with the decoded video</div>
+    <div class="hint">drag to rotate · the cube shows your live source</div>
   </div>
 
   <div class="panel">
     <div>
       <video id="vid" playsinline muted></video>
-      <p class="vlabel">decode source (also used as the cube texture)</p>
+      <p class="vlabel">your source (webcam or synthetic) — also the cube texture · local only, never uploaded</p>
     </div>
     <div>
       <div class="controls">
-        <button class="primary" id="pip" disabled>Picture-in-Picture</button>
+        <button class="primary" id="camera">Use my camera</button>
+        <button id="pip" disabled>Picture-in-Picture</button>
         <button id="playpause" disabled>Play</button>
         <button id="spin">Auto-spin: on</button>
-        <button id="reencode" title="Capture ~4s of the source and run it through the codec again — encode, then decode back to the video and the cube">Re-encode clip</button>
+        <button id="record" title="Run ~4s of the current live source through the codec — encode, then decode back to the video and cube">Record &amp; decode</button>
+        <button id="golive" style="display:none">↺ Back to live</button>
       </div>
       <div class="status">
         <div class="row"><span>Background</span><b id="s-bg">initialising…</b></div>
         <div class="row"><span>3D scene</span><b id="s-scene">initialising…</b></div>
+        <div class="row"><span>Camera</span><b id="s-cam">off</b></div>
         <div class="row"><span>Codec</span><b id="s-codec">initialising…</b></div>
         <div class="row"><span>Picture-in-Picture</span><b id="s-pip">idle</b></div>
       </div>
@@ -127,6 +132,7 @@
     setBadge('webgl', gl1);
     setBadge('pip', !!document.pictureInPictureEnabled);
     setBadge('rec', ('MediaRecorder' in window));
+    setBadge('cam', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
   })();
 
   /* ---------- shared: decoded-video source ---------- */
@@ -150,32 +156,50 @@
   }
   (function anim(){ drawSrc((performance.now()-st0)/1000); requestAnimationFrame(anim); })();
 
-  function useLiveStream(){
-    try{ if(srcCanvas.captureStream){ vid.srcObject=srcCanvas.captureStream(30); vid.play().catch(function(){}); setStatus('codec','live canvas stream (no MediaRecorder)'); }
-         else setStatus('codec','unavailable in this browser'); }
-    catch(e){ setStatus('codec','unavailable'); }
+  var liveStream=null, camStream=null;
+  function synthStream(){ try{ return srcCanvas.captureStream ? srcCanvas.captureStream(30) : null; }catch(e){ return null; } }
+  function attach(stream, loop){
+    try{ if(vid.src && vid.src.indexOf('blob:')===0) URL.revokeObjectURL(vid.src); }catch(e){}
+    vid.removeAttribute('src'); vid.srcObject=stream; vid.loop=!!loop; vid.play().catch(function(){});
   }
-  function startPipeline(){
-    if(!('MediaRecorder' in window) || !srcCanvas.captureStream){ useLiveStream(); return; }
-    var stream;
-    try{ stream=srcCanvas.captureStream(30); }catch(e){ useLiveStream(); return; }
+  function showLive(){ var s=liveStream||synthStream(); if(!s) return; liveStream=s; attach(s,false); $('golive').style.display='none'; }
+  function initSource(){
+    liveStream=synthStream();
+    if(liveStream){ attach(liveStream,false); setStatus('codec','synthetic source live — enable your camera or record a clip'); }
+    else setStatus('codec','captureStream unavailable in this browser');
+  }
+  function enableCamera(){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ setStatus('cam','getUserMedia not supported'); return; }
+    setStatus('cam','requesting permission…');
+    navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}, audio:false}).then(function(s){
+      if(camStream){ try{ camStream.getTracks().forEach(function(t){t.stop();}); }catch(e){} }
+      camStream=s; liveStream=s; attach(s,false); $('golive').style.display='none';
+      setStatus('cam','live · local only, never uploaded'); $('camera').textContent='Stop camera';
+    }).catch(function(e){ setStatus('cam','denied / unavailable ('+((e&&e.name)||e)+')'); });
+  }
+  function stopCamera(){
+    if(camStream){ try{ camStream.getTracks().forEach(function(t){t.stop();}); }catch(e){} camStream=null; }
+    liveStream=synthStream(); showLive(); setStatus('cam','off'); $('camera').textContent='Use my camera';
+  }
+  function recordDecode(){
+    var src=liveStream||synthStream();
+    if(!src || !('MediaRecorder' in window)){ setStatus('codec','codec round-trip unavailable here'); return; }
     var cands=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4;codecs=h264'];
     var mime=''; for(var i=0;i<cands.length;i++){ if(MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(cands[i])){ mime=cands[i]; break; } }
-    var rec; try{ rec=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream); }catch(e){ useLiveStream(); return; }
-    var chunks=[];
-    rec.ondataavailable=function(e){ if(e.data && e.data.size) chunks.push(e.data); };
+    var rec; try{ rec=mime?new MediaRecorder(src,{mimeType:mime}):new MediaRecorder(src); }catch(e){ setStatus('codec','recorder unavailable'); return; }
+    var chunks=[]; rec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
     rec.onstop=function(){
-      try{ stream.getTracks().forEach(function(t){t.stop();}); }catch(e){}
       var blob=new Blob(chunks,{type:mime||'video/webm'});
-      if(vid.src && vid.src.indexOf('blob:')===0){ try{ URL.revokeObjectURL(vid.src); }catch(e){} }
+      try{ if(vid.src && vid.src.indexOf('blob:')===0) URL.revokeObjectURL(vid.src); }catch(e){}
       vid.srcObject=null; vid.src=URL.createObjectURL(blob); vid.loop=true; vid.play().catch(function(){});
       setStatus('codec','decoding '+(mime.split(';')[0]||'webm')+' '+(mime.indexOf('vp9')>=0?'(VP9)':mime.indexOf('vp8')>=0?'(VP8)':mime.indexOf('h264')>=0?'(H.264)':'')+' → GPU');
+      $('golive').style.display='';
     };
-    setStatus('codec','encoding '+(mime.split(';')[0]||'webm')+' …');
-    try{ rec.start(); }catch(e){ useLiveStream(); return; }
+    setStatus('codec','encoding '+(mime.split(';')[0]||'webm')+' … (4s)');
+    try{ rec.start(); }catch(e){ setStatus('codec','encode failed'); return; }
     setTimeout(function(){ try{ rec.stop(); }catch(e){} }, 4000);
   }
-  startPipeline();
+  initSource();
 
   /* ---------- WebGL2 3D cube, textured with the decoded video ---------- */
   var CUBE_VERT=[
@@ -351,7 +375,9 @@
   vid.addEventListener('pause', function(){ $('playpause').textContent='Play'; });
   $('playpause').addEventListener('click',function(){ if(vid.paused){ vid.play().catch(function(){}); } else { vid.pause(); } });
   $('spin').addEventListener('click',function(){ autoSpin=!autoSpin; this.textContent='Auto-spin: '+(autoSpin?'on':'off'); });
-  $('reencode').addEventListener('click',function(){ var b=this; b.disabled=true; setStatus('codec','re-encoding …'); startPipeline(); setTimeout(function(){ b.disabled=false; }, 4500); });
+  $('camera').addEventListener('click',function(){ if(camStream) stopCamera(); else enableCamera(); });
+  $('record').addEventListener('click',function(){ var b=this; b.disabled=true; recordDecode(); setTimeout(function(){ b.disabled=false; }, 4500); });
+  $('golive').addEventListener('click',function(){ showLive(); setStatus('codec', camStream?'live camera':'synthetic source live'); });
 })();
 </script>
 

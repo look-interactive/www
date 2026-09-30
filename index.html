@@ -10,139 +10,272 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://look-interactive.com">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='11' fill='none' stroke='%23e6398c' stroke-width='3'/><circle cx='16' cy='16' r='4' fill='%236a5cff'/></svg>">
+<script>document.documentElement.classList.add('js')</script>
 <style>
   :root{
-    --bg:#0b0c10; --panel:#101218; --panel2:#0e1015; --ink:#f2f4f8; --muted:#9aa3b2; --line:#20242e;
-    --accent:#6a5cff; --pink:#e6398c; --teal:#26d0ce; --amber:#ffb454; --maxw:1080px;
+    --bg:#08090c; --panel:#0f1117; --ink:#f2f4f8; --muted:#9aa3b2; --line:#1c2029;
+    --accent:#6a5cff; --pink:#e6398c; --teal:#26d0ce; --amber:#ffb454; --maxw:1180px;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,ui-serif,serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --iri:linear-gradient(100deg,#6a5cff,#26d0ce,#e6398c,#ffb454,#6a5cff);
+    --mx:.5; --my:.5;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{margin:0; font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     color:var(--ink); background:var(--bg); overflow-x:hidden}
-  .wrap{width:100%; max-width:var(--maxw); margin:0 auto; padding:0 24px}
-  .kicker{font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); margin:0 0 14px; display:flex; align-items:center; gap:10px}
-  .num{font-family:ui-monospace,Menlo,monospace; font-weight:700; color:var(--ink)}
+  ::selection{background:var(--pink); color:#fff}
+  .wrap{width:100%; max-width:var(--maxw); margin:0 auto; padding:0 28px}
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+  em{font-family:var(--serif); font-style:italic; font-weight:400; letter-spacing:0}
+  .kicker{font:600 12px/1 var(--mono); letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin:0 0 16px; display:flex; align-items:center; gap:10px}
+  .kicker::before{content:""; width:22px; height:1px; background:currentColor; opacity:.6}
 
-  nav{position:sticky; top:0; z-index:20; backdrop-filter:blur(10px); background:rgba(11,12,16,.72); border-bottom:1px solid var(--line)}
-  .nav{display:flex; align-items:center; justify-content:space-between; padding:14px 24px; max-width:var(--maxw); margin:0 auto}
-  .brand{font-weight:800; letter-spacing:-.02em; text-decoration:none; font-size:17px}
-  .brand .dot{color:var(--accent)}
+  /* film grain + cursor light, over everything, never interactive */
+  body::after{content:""; position:fixed; inset:0; z-index:90; pointer-events:none; opacity:.06; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+  .spot{position:fixed; inset:0; z-index:80; pointer-events:none; mix-blend-mode:screen;
+    background:radial-gradient(520px circle at calc(var(--mx)*100%) calc(var(--my)*100%), rgba(106,92,255,.08), transparent 60%)}
+  .prog{position:fixed; top:0; left:0; right:0; height:2px; z-index:40; background:var(--iri); transform-origin:0 50%; transform:scaleX(var(--sp,0))}
+
+  nav{position:fixed; top:0; left:0; right:0; z-index:30; transition:background .3s, border-color .3s; border-bottom:1px solid transparent}
+  nav.solid{backdrop-filter:blur(12px); background:rgba(8,9,12,.7); border-color:var(--line)}
+  .nav{display:flex; align-items:center; justify-content:space-between; padding:16px 28px; max-width:var(--maxw); margin:0 auto}
+  .brand{font-weight:800; letter-spacing:-.02em; text-decoration:none; color:var(--ink); font-size:17px}
+  .brand .dot{color:var(--pink)}
   .nav-links{display:flex; gap:22px; align-items:center; font-size:14px}
-  .nav-links a{color:var(--muted); text-decoration:none}
+  .nav-links a{color:var(--muted); text-decoration:none; transition:color .15s}
   .nav-links a:hover{color:var(--ink)}
-  .nav-links .btn{color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:7px 13px}
-  .nav-links .btn:hover{border-color:var(--accent)}
-  @media(max-width:620px){.nav-links a:not(.btn){display:none}}
+  .nav-links .btn{color:var(--ink); border:1px solid #2a3040; border-radius:999px; padding:7px 15px}
+  .nav-links .btn:hover{border-color:var(--pink)}
+  @media(max-width:760px){.nav-links a:not(.btn){display:none}}
 
-  header{position:relative; padding:18vh 0 12vh; overflow:hidden}
-  /* fallback glow (shows if the GPU canvas can't init) */
-  header::before{content:""; position:absolute; inset:-30% 0 auto -15%; height:80vh; z-index:0; pointer-events:none;
+  /* ---------- hero ---------- */
+  header{position:relative; min-height:100vh; min-height:100svh; display:flex; align-items:center; padding:120px 0 90px; overflow:hidden}
+  header::before{content:""; position:absolute; inset:-30% 0 auto -15%; height:90vh; z-index:0; pointer-events:none;
     background:radial-gradient(40% 55% at 26% 30%, rgba(106,92,255,.24), transparent 70%),
       radial-gradient(38% 50% at 74% 42%, rgba(230,57,140,.18), transparent 70%),
       radial-gradient(42% 55% at 55% 82%, rgba(38,208,206,.15), transparent 72%); filter:blur(8px)}
-  #gpu{position:absolute; inset:0; width:100%; height:100%; z-index:1; display:block; opacity:0; transition:opacity 1.2s ease}
+  #gpu{position:absolute; inset:0; width:100%; height:100%; z-index:1; display:block; opacity:0; transition:opacity 1.4s ease}
   #gpu.on{opacity:1}
-  /* fade the shader into the page + keep hero text readable */
   header::after{content:""; position:absolute; inset:0; z-index:2; pointer-events:none;
-    background:linear-gradient(180deg, rgba(11,12,16,.10) 0%, rgba(11,12,16,0) 42%, rgba(11,12,16,.82) 90%, var(--bg) 100%)}
+    background:linear-gradient(180deg, rgba(8,9,12,.25) 0%, rgba(8,9,12,0) 38%, rgba(8,9,12,.75) 86%, var(--bg) 100%)}
   header .wrap{position:relative; z-index:3}
-  .eyebrow{font-size:13px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin:0 0 18px}
-  .mark{margin:0; line-height:.96; font-weight:800; letter-spacing:-.03em; font-size:clamp(46px,11vw,104px);
-    background:linear-gradient(100deg,#6a5cff,#26d0ce,#e6398c,#ffb454,#6a5cff); background-size:280% 100%;
-    -webkit-background-clip:text; background-clip:text; color:transparent; animation:shift 9s ease-in-out infinite}
-  @keyframes shift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-  @media(prefers-reduced-motion:reduce){.mark{animation:none}}
-  .tag{font-size:clamp(19px,2.6vw,26px); color:#e7ebf3; margin:24px 0 0; max-width:26ch; font-weight:600}
-  .sub{color:var(--muted); margin:16px 0 0; max-width:56ch}
-  .cta{display:inline-flex; gap:8px; align-items:center; margin-top:30px; text-decoration:none;
-    background:var(--accent); color:#fff; font-weight:600; font-size:15px; border-radius:9px; padding:11px 18px}
-  .cta:hover{filter:brightness(1.08)}
-  .cta.ghost{background:transparent; border:1px solid var(--line); color:var(--ink); margin-left:10px}
-  .cta.ghost:hover{border-color:var(--accent); filter:none}
+  .mark{margin:0; line-height:.9; font-weight:850; letter-spacing:-.045em; font-size:clamp(56px,13vw,172px);
+    background:repeating-linear-gradient(90deg, rgba(8,9,12,.35) 0 1px, transparent 1px 5px), var(--iri);
+    background-size:auto, 280% 100%;
+    -webkit-background-clip:text; background-clip:text; color:transparent; animation:shift 10s ease-in-out infinite}
+  .mark span{display:block}
+  .mark span+span{padding-left:.42em}
+  @media(max-width:560px){.mark{font-size:clamp(48px,15.5vw,80px)} .mark span+span{padding-left:0}}
+  @keyframes shift{0%,100%{background-position:0 0, 0% 50%}50%{background-position:0 0, 100% 50%}}
 
-  section{padding:9vh 0; border-top:1px solid var(--line)}
-  .h2{font-size:clamp(26px,4vw,38px); font-weight:750; letter-spacing:-.02em; margin:6px 0 0}
-  .lede{color:var(--muted); margin:16px 0 0; max-width:60ch}
+  /* lenticular flip: two phrases interleaved in thin strips; your viewing angle (pointer x) picks one */
+  .flip{display:grid; margin:34px 0 0; font-family:var(--serif); font-style:italic; font-size:clamp(28px,4.4vw,54px); line-height:1.1; --w:6px}
+  .flip>span{grid-area:1/1; white-space:nowrap}
+  .flip .fa{color:#fff;
+    -webkit-mask-image:repeating-linear-gradient(90deg,#000 0 calc(var(--p,1)*var(--w)),transparent 0 var(--w));
+            mask-image:repeating-linear-gradient(90deg,#000 0 calc(var(--p,1)*var(--w)),transparent 0 var(--w));
+    transform:translateX(calc((var(--p,1) - 1)*14px))}
+  .flip .fb{background:var(--iri); background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent;
+    -webkit-mask-image:repeating-linear-gradient(90deg,transparent 0 calc(var(--p,1)*var(--w)),#000 0 var(--w));
+            mask-image:repeating-linear-gradient(90deg,transparent 0 calc(var(--p,1)*var(--w)),#000 0 var(--w));
+    transform:translateX(calc(var(--p,1)*14px))}
+  .flip[data-s=a] .fb, .flip[data-s=b] .fa{visibility:hidden}
+  @media(max-width:560px){.flip>span{white-space:normal}}
+  .angle{display:flex; align-items:center; gap:12px; margin:18px 0 0; font:12px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+  .angle .track{position:relative; width:120px; height:1px; background:#2a3040}
+  .angle .track i{position:absolute; top:-3px; left:calc(var(--mx)*100%); width:7px; height:7px; margin-left:-3.5px; border-radius:50%; background:var(--pink); box-shadow:0 0 12px var(--pink)}
+  .sub{color:#b4bccb; margin:30px 0 0; max-width:54ch; font-size:17px}
+  .ctas{display:flex; flex-wrap:wrap; gap:12px; margin-top:34px}
+  .cta{display:inline-flex; gap:8px; align-items:center; text-decoration:none; font-weight:600; font-size:15px; border-radius:999px; padding:13px 22px;
+    color:#fff; background:linear-gradient(100deg,var(--accent),var(--pink)); transition:transform .15s, filter .15s}
+  .cta:hover{filter:brightness(1.1); transform:translateY(-1px)}
+  .cta.ghost{background:rgba(255,255,255,.03); border:1px solid #2a3040}
+  .cta.ghost:hover{border-color:var(--teal)}
+  .scrollcue{position:absolute; z-index:3; left:50%; bottom:26px; transform:translateX(-50%); font:11px/1 var(--mono); letter-spacing:.2em; color:var(--muted); text-transform:uppercase; display:flex; flex-direction:column; align-items:center; gap:10px}
+  .scrollcue::after{content:""; width:1px; height:34px; background:linear-gradient(var(--muted),transparent); animation:cue 2.2s ease-in-out infinite}
+  @keyframes cue{0%{transform:scaleY(0); transform-origin:top}50%{transform:scaleY(1); transform-origin:top}51%{transform-origin:bottom}100%{transform:scaleY(0); transform-origin:bottom}}
 
-  /* overview cards */
-  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:38px}
-  .card{background:var(--panel); border:1px solid var(--line); border-radius:15px; padding:26px 24px 28px; text-decoration:none; color:inherit; display:block; transition:transform .15s, border-color .15s}
-  .card:hover{transform:translateY(-3px); border-color:#2f3646}
-  .glyph{width:40px; height:40px; border-radius:11px; display:grid; place-items:center; margin-bottom:16px}
-  .card h3{margin:0 0 8px; font-size:19px; letter-spacing:-.01em}
-  .card p{margin:0; color:var(--muted); font-size:14.5px}
-  .more{margin:16px 0 0; font-size:13.5px; color:#c7ccd8}
-  .c-vision .glyph{background:rgba(106,92,255,.16); color:#a99dff}
-  .c-signage .glyph{background:rgba(230,57,140,.16); color:#ff8bbd}
-  .c-delivery .glyph{background:rgba(38,208,206,.15); color:#7fe7e5}
+  section{position:relative; padding:14vh 0}
+  .h2{font-size:clamp(32px,5vw,58px); line-height:1.02; font-weight:780; letter-spacing:-.035em; margin:0; max-width:18ch}
+  .h2 em{background:var(--iri); background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; padding-right:.06em}
+  .lede{color:var(--muted); margin:22px 0 0; max-width:58ch; font-size:17px}
 
-  /* detailed offering sections */
-  .off{scroll-margin-top:72px}
-  .off .kicker .num{color:var(--acc, var(--ink))}
+  /* ---------- offerings: holographic foil cards ---------- */
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:20px; margin-top:52px}
+  .card{position:relative; display:block; text-decoration:none; color:inherit; border-radius:22px; padding:30px 28px 32px; min-height:330px;
+    background:linear-gradient(160deg,#141722,#0c0e14); border:1px solid #20242f; overflow:hidden;
+    transform:perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)); transition:transform .5s cubic-bezier(.2,.8,.2,1), border-color .2s}
+  .card.live{transition:transform .08s linear, border-color .2s}
+  .card:hover{border-color:#343b4d}
+  .card::before{content:""; position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .3s; mix-blend-mode:screen;
+    background:radial-gradient(circle at var(--gx,50%) var(--gy,50%), rgba(255,255,255,.22), transparent 42%),
+      conic-gradient(from calc(var(--ry,0deg)*8) at var(--gx,50%) var(--gy,50%), #6a5cff55, #26d0ce55, #e6398c55, #ffb45455, #6a5cff55)}
+  .card:hover::before{opacity:.55}
+  .card::after{content:""; position:absolute; inset:0; pointer-events:none; opacity:.35;
+    background:repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 6px)}
+  .card .cn{font:600 13px/1 var(--mono); color:var(--acc); letter-spacing:.1em}
+  .card h3{margin:74px 0 10px; font-size:28px; line-height:1.05; letter-spacing:-.025em; font-weight:760}
+  .card p{margin:0; color:var(--muted); font-size:15px; max-width:32ch}
+  .card .more{position:absolute; left:28px; bottom:26px; font-size:13.5px; color:#cfd5e1; display:flex; gap:8px; align-items:center}
+  .card .more::after{content:"→"; transition:transform .2s} .card:hover .more::after{transform:translateX(5px)}
+  .card .glyph{position:absolute; right:22px; top:22px; width:92px; height:92px; color:var(--acc); opacity:.9}
+  .c-vision{--acc:#a99dff} .c-signage{--acc:#ff8bbd} .c-delivery{--acc:#7fe7e5}
+
+  /* ---------- edge: frame-synced wall ---------- */
+  .edge-grid{display:grid; grid-template-columns:1fr 1.15fr; gap:56px; align-items:center}
+  @media(max-width:900px){.edge-grid{grid-template-columns:1fr}}
+  .wall{position:relative; aspect-ratio:16/9; border-radius:14px; overflow:hidden; background:var(--iri); background-size:300% 100%;
+    animation:shift2 7s linear infinite; box-shadow:0 30px 90px -30px rgba(106,92,255,.5), 0 0 0 6px #050608}
+  @keyframes shift2{to{background-position:300% 0}}
+  .wall .wt{position:absolute; inset:0; display:grid; place-items:center; font-family:var(--serif); font-style:italic; font-size:clamp(34px,6vw,76px); color:rgba(8,9,12,.82); letter-spacing:-.02em}
+  .wall::before{content:""; position:absolute; top:0; bottom:0; width:12%; left:-12%; z-index:1;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent); animation:sweep 1.8s linear infinite}
+  @keyframes sweep{to{left:100%}}
+  .wall::after{content:""; position:absolute; inset:0; z-index:2;
+    background:repeating-linear-gradient(90deg, transparent 0 calc(33.333% - 3px), #050608 calc(33.333% - 3px) calc(33.333% + 3px)),
+      repeating-linear-gradient(0deg, transparent 0 calc(33.333% - 3px), #050608 calc(33.333% - 3px) calc(33.333% + 3px))}
+  .wallcap{margin:14px 0 0; font:12px/1.5 var(--mono); color:var(--muted); letter-spacing:.06em}
+  .specs{display:grid; grid-template-columns:1fr 1fr; gap:0; margin-top:56px; border-top:1px solid var(--line)}
+  @media(max-width:640px){.specs{grid-template-columns:1fr}}
+  .spec{padding:20px 20px 20px 0; border-bottom:1px solid var(--line)}
+  .spec:nth-child(odd){border-right:1px solid var(--line)} .spec:nth-child(even){padding-left:22px}
+  @media(max-width:640px){.spec:nth-child(odd){border-right:0} .spec:nth-child(even){padding-left:0}}
+  .spec b{display:block; font-size:16px; letter-spacing:-.01em} .spec span{font-size:14px; color:var(--muted)}
+  .powered{margin:30px 0 0; display:flex; gap:12px; align-items:center; flex-wrap:wrap; color:#d4dae6; font-size:15px}
+  .powered a{color:#fff; text-underline-offset:3px}
+  .badge{font:700 11px/1 var(--mono); letter-spacing:.1em; text-transform:uppercase; color:#fff;
+    background:linear-gradient(100deg,var(--accent),var(--pink)); border-radius:999px; padding:6px 11px; white-space:nowrap}
+
+  /* ---------- holo: a floating light object ---------- */
+  .holo{overflow:hidden; background:radial-gradient(60% 70% at 78% 50%, rgba(106,92,255,.14), transparent 70%)}
+  .holo-grid{display:grid; grid-template-columns:1.05fr 1fr; gap:40px; align-items:center}
+  @media(max-width:900px){.holo-grid{grid-template-columns:1fr}}
+  .stage{position:relative; aspect-ratio:1; max-width:520px; width:100%; justify-self:center; perspective:1000px; display:grid; place-items:center}
+  .obj{position:relative; width:58%; aspect-ratio:1; transform-style:preserve-3d;
+    transform:rotateX(calc(64deg + (var(--my) - .5)*-24deg)) rotateZ(calc((var(--mx) - .5)*40deg)); transition:transform .25s ease-out}
+  .ring{position:absolute; inset:0; border:1.5px solid hsl(var(--h) 90% 70% / .85); border-radius:50%;
+    box-shadow:0 0 18px hsl(var(--h) 90% 60% / .5), inset 0 0 18px hsl(var(--h) 90% 60% / .35);
+    transform:translateZ(calc(var(--i)*26px - 52px)) scale(calc(1 - var(--i)*.13)); animation:spin calc(10s + var(--i)*3s) linear infinite}
+  .ring:nth-child(even){border-radius:30%; border-style:dashed; animation-direction:reverse}
+  @keyframes spin{to{transform:translateZ(calc(var(--i)*26px - 52px)) scale(calc(1 - var(--i)*.13)) rotate(360deg)}}
+  .core{position:absolute; width:18%; aspect-ratio:1; border-radius:50%; top:28%;
+    background:radial-gradient(circle at 35% 35%, #fff, #b7adff 30%, #e6398c 70%, transparent 72%); filter:blur(.5px);
+    box-shadow:0 0 60px 20px rgba(230,57,140,.35), 0 0 120px 40px rgba(106,92,255,.25); animation:bob 5s ease-in-out infinite}
+  @keyframes bob{50%{transform:translateY(-14px)}}
+  .beam{position:absolute; bottom:8%; width:70%; height:62%; clip-path:polygon(38% 100%,62% 100%,100% 0,0 0);
+    background:linear-gradient(0deg, rgba(38,208,206,.28), rgba(106,92,255,.05) 80%, transparent); filter:blur(2px)}
+  .emit{position:absolute; bottom:6%; width:38%; height:6%; border-radius:50%; background:radial-gradient(closest-side, rgba(127,231,229,.9), rgba(38,208,206,.2), transparent)}
+  .stage::after{content:""; position:absolute; inset:0; pointer-events:none; border-radius:50%;
+    background:repeating-linear-gradient(0deg, rgba(8,9,12,.25) 0 1px, transparent 1px 4px); mask-image:radial-gradient(closest-side,#000,transparent); -webkit-mask-image:radial-gradient(closest-side,#000,transparent)}
+
+  /* ---------- numbered offerings: sticky lenticular numerals ---------- */
+  .off{scroll-margin-top:60px}
   .off-v{--acc:#a99dff} .off-s{--acc:#ff8bbd} .off-d{--acc:#7fe7e5}
-  .off .bar{width:44px; height:3px; border-radius:3px; background:var(--acc); margin:0 0 20px}
-  .caplist{display:grid; grid-template-columns:1fr 1fr; gap:14px 26px; margin-top:34px}
+  .off-grid{display:grid; grid-template-columns:minmax(200px,.8fr) 2fr; gap:48px}
+  @media(max-width:860px){.off-grid{grid-template-columns:1fr; gap:10px}}
+  .off-side{position:sticky; top:96px; align-self:start}
+  @media(max-width:860px){.off-side{position:static}}
+  .bignum{font-weight:850; line-height:.8; letter-spacing:-.06em; font-size:clamp(110px,17vw,220px); color:transparent;
+    -webkit-text-stroke:1px color-mix(in srgb, var(--acc) 55%, transparent);
+    background:repeating-linear-gradient(90deg, var(--acc) 0 2px, transparent 2px 6px);
+    background-position:calc(var(--mx)*-60px) 0; -webkit-background-clip:text; background-clip:text}
+  .off-side .kicker{margin-top:22px; color:var(--acc)}
+  .caplist{display:grid; grid-template-columns:1fr 1fr; gap:0 34px; margin-top:44px; counter-reset:c}
   @media(max-width:640px){.caplist{grid-template-columns:1fr}}
-  .cap{display:flex; gap:12px; align-items:flex-start}
-  .cap i{flex:none; width:22px; height:22px; margin-top:2px; border-radius:6px; display:grid; place-items:center;
-    background:color-mix(in srgb, var(--acc) 18%, transparent); color:var(--acc); font-style:normal; font-size:13px; font-weight:800}
-  .cap b{display:block; font-size:15px; letter-spacing:-.01em}
-  .cap span{font-size:13.5px; color:var(--muted)}
-  .ideal{margin-top:34px}
-  .ideal .kicker{margin-bottom:10px}
+  .cap{padding:18px 0; border-top:1px solid var(--line); counter-increment:c; display:grid; grid-template-columns:34px 1fr}
+  .cap::before{content:counter(c,decimal-leading-zero); font:600 12px/1.9 var(--mono); color:var(--acc)}
+  .cap b{display:block; font-size:16px; letter-spacing:-.01em} .cap span{font-size:14px; color:var(--muted)}
+  .ideal{margin-top:40px}
+  .ideal .kicker{margin-bottom:12px}
   .ideal ul{list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:8px}
-  .ideal li{font-size:13px; color:#cfd6e2; border:1px solid var(--line); border-radius:999px; padding:6px 13px}
+  .ideal li{font-size:13.5px; color:#d6dce8; border:1px solid #262b37; border-radius:999px; padding:7px 14px; transition:border-color .15s, color .15s}
+  .ideal li:hover{border-color:var(--acc); color:#fff}
 
-  /* approach */
-  .band{display:grid; grid-template-columns:1.1fr 1fr; gap:30px; align-items:center}
-  @media(max-width:720px){.band{grid-template-columns:1fr}}
-  .band .big{font-size:clamp(22px,3.2vw,30px); font-weight:700; letter-spacing:-.02em; margin:10px 0 0}
-  .steps{display:flex; flex-wrap:wrap; gap:10px; margin-top:8px}
-  .step{border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--panel); flex:1 1 130px}
-  .step b{display:block; font-size:14px} .step span{font-size:12.5px; color:var(--muted)}
+  /* ---------- AI: a dot field that watches you back ---------- */
+  .ai-panel{position:relative; border-radius:28px; padding:64px 48px; overflow:hidden; background:#0b0d13; border:1px solid #1d2230}
+  @media(max-width:640px){.ai-panel{padding:44px 24px}}
+  #dots{position:absolute; inset:0; width:100%; height:100%; z-index:0}
+  .ai-panel>*:not(#dots):not(.reticle){position:relative; z-index:1}
+  .reticle{position:absolute; z-index:1; width:120px; height:120px; margin:-60px 0 0 -60px; left:0; top:0; pointer-events:none; opacity:0; transition:opacity .3s}
+  .reticle.on{opacity:1}
+  .reticle::before,.reticle::after{content:""; position:absolute; inset:0;
+    background:linear-gradient(var(--teal),var(--teal)) 0 0/18px 1.5px, linear-gradient(var(--teal),var(--teal)) 0 0/1.5px 18px,
+      linear-gradient(var(--teal),var(--teal)) 100% 0/18px 1.5px, linear-gradient(var(--teal),var(--teal)) 100% 0/1.5px 18px,
+      linear-gradient(var(--teal),var(--teal)) 0 100%/18px 1.5px, linear-gradient(var(--teal),var(--teal)) 0 100%/1.5px 18px,
+      linear-gradient(var(--teal),var(--teal)) 100% 100%/18px 1.5px, linear-gradient(var(--teal),var(--teal)) 100% 100%/1.5px 18px;
+    background-repeat:no-repeat}
+  .reticle::after{inset:auto; left:-2px; top:calc(100% + 8px); background:none; content:"viewer · attending"; font:10.5px/1 var(--mono); letter-spacing:.12em; text-transform:uppercase; color:var(--teal); white-space:nowrap}
+  .ai-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:26px 34px; margin-top:44px}
+  .ai-item{border-left:1px solid #2a3040; padding-left:16px}
+  .ai-item b{display:block; font-size:16px; letter-spacing:-.01em} .ai-item span{font-size:14px; color:var(--muted)}
+  .soon{margin:40px 0 0; padding-top:26px; border-top:1px solid var(--line); color:#d4dae6; font-size:15px; display:flex; gap:12px; align-items:center; flex-wrap:wrap}
 
-  .sectors{display:flex; flex-wrap:wrap; gap:12px; margin-top:34px; list-style:none; padding:0}
-  .sectors li{font-size:15px; font-weight:600; color:#dfe4ee; border:1px solid var(--line);
-    border-radius:11px; padding:12px 18px; background:var(--panel); transition:border-color .14s}
-  .sectors li:hover{border-color:var(--accent)}
+  /* ---------- approach: a signal travelling the pipeline ---------- */
+  .pipe{display:grid; grid-template-columns:repeat(3,1fr); gap:0; margin-top:54px; position:relative}
+  @media(max-width:700px){.pipe{grid-template-columns:1fr}}
+  .pipe::before{content:""; position:absolute; left:0; right:0; top:27px; height:1px; background:#2a3040}
+  .pipe::after{content:""; position:absolute; top:24px; left:0; width:60px; height:7px; border-radius:7px; background:var(--iri); box-shadow:0 0 18px var(--pink); animation:travel 4.5s cubic-bezier(.6,0,.4,1) infinite}
+  @keyframes travel{from{left:0}to{left:calc(100% - 60px)}}
+  @media(max-width:700px){.pipe::before,.pipe::after{display:none}}
+  .stepx{padding-right:26px}
+  .stepx .dotn{width:55px; height:55px; border-radius:50%; border:1px solid #2a3040; background:var(--bg); position:relative; z-index:1;
+    display:grid; place-items:center; font:600 14px/1 var(--mono); color:var(--ink)}
+  .stepx h3{margin:22px 0 6px; font-size:26px; letter-spacing:-.02em} .stepx p{margin:0; color:var(--muted); font-size:15px}
 
-  .partners{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-top:34px; list-style:none; padding:0}
-  .partners li{display:flex}
-  .partners a{flex:1; display:grid; place-items:center; text-align:center; font-size:15px; font-weight:650;
-    color:#e7ebf3; letter-spacing:-.01em; text-decoration:none; border:1px solid var(--line); border-radius:12px;
-    padding:22px 14px; background:var(--panel); transition:border-color .14s, transform .14s}
-  .partners a:hover{border-color:var(--accent); transform:translateY(-2px)}
+  /* ---------- customers: marquee ---------- */
+  .marquee{overflow:hidden; margin-top:48px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:26px 0;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent); mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
+  .mq{display:flex; width:max-content; animation:mq 34s linear infinite}
+  .marquee:hover .mq{animation-play-state:paused}
+  .mq span{font-family:var(--serif); font-style:italic; font-size:clamp(34px,5.4vw,68px); white-space:nowrap; padding:0 .5em; color:#e7ebf3}
+  .mq span:nth-of-type(2n){color:transparent; -webkit-text-stroke:1px #6b7385}
+  .mq i{font-style:normal; align-self:center; color:var(--pink); font-size:24px}
+  @keyframes mq{to{transform:translateX(-50%)}}
 
-  .ai .ai-panel{position:relative; border-radius:18px; padding:40px 34px;
-    background:radial-gradient(120% 140% at 0% 0%, rgba(106,92,255,.10), transparent 60%), var(--panel2)}
-  .ai .ai-panel::before{content:""; position:absolute; inset:0; border-radius:18px; padding:1px; pointer-events:none;
-    background:linear-gradient(120deg, rgba(106,92,255,.6), rgba(38,208,206,.5), rgba(230,57,140,.5));
-    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite:xor; mask-composite:exclude}
-  .ai-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(238px,1fr)); gap:18px 26px; margin-top:30px}
-  .ai-item b{display:block; font-size:15px; letter-spacing:-.01em}
-  .ai-item span{font-size:13.5px; color:var(--muted)}
-  .soon{margin:28px 0 0; padding-top:24px; border-top:1px solid var(--line); color:#d4dae6;
-    font-size:14.5px; display:flex; gap:12px; align-items:center; flex-wrap:wrap}
-  .badge{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#fff;
-    background:linear-gradient(100deg,var(--accent),var(--pink)); border-radius:999px; padding:5px 11px; white-space:nowrap}
-  .soon a{color:#fff; text-decoration:underline; text-underline-offset:2px}
+  /* ---------- partners ---------- */
+  .partners{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); margin-top:44px; list-style:none; padding:0; border-top:1px solid var(--line); border-left:1px solid var(--line)}
+  .partners a{display:grid; place-items:center; height:120px; text-decoration:none; font-size:18px; font-weight:700; letter-spacing:-.015em; color:#cfd5e1;
+    border-right:1px solid var(--line); border-bottom:1px solid var(--line); transition:color .2s, background .2s}
+  .partners a:hover{color:transparent; background-color:#0e1016; background-image:var(--iri); -webkit-background-clip:text; background-clip:text}
 
-  .contact-h{font-size:clamp(26px,4.4vw,40px); font-weight:750; letter-spacing:-.02em; margin:6px 0 0; max-width:20ch}
-  .mailbtn{display:inline-flex; gap:9px; align-items:center; margin-top:26px; text-decoration:none;
-    font-family:ui-monospace,Menlo,monospace; font-size:16px; color:#fff;
-    background:linear-gradient(100deg,var(--accent),var(--pink)); border-radius:10px; padding:13px 20px; font-weight:600}
-  .mailbtn:hover{filter:brightness(1.08)}
+  /* ---------- contact ---------- */
+  #contact{padding:18vh 0 16vh; text-align:center; overflow:hidden}
+  #contact::before{content:""; position:absolute; left:50%; top:50%; width:900px; height:900px; transform:translate(-50%,-50%); pointer-events:none;
+    background:conic-gradient(from 0deg, rgba(106,92,255,.18), rgba(38,208,206,.12), rgba(230,57,140,.16), rgba(255,180,84,.1), rgba(106,92,255,.18));
+    border-radius:50%; filter:blur(90px); animation:rot 24s linear infinite}
+  @keyframes rot{to{transform:translate(-50%,-50%) rotate(360deg)}}
+  #contact .wrap{position:relative}
+  #contact .kicker{justify-content:center}
+  .contact-h{font-size:clamp(40px,7.4vw,104px); line-height:.98; font-weight:800; letter-spacing:-.045em; margin:0 auto; max-width:14ch}
+  .contact-h em{background:var(--iri); background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; animation:shift3 8s ease-in-out infinite}
+  @keyframes shift3{50%{background-position:100% 0}}
+  #contact .lede{margin-left:auto; margin-right:auto}
+  .mailbtn{display:inline-flex; gap:10px; align-items:center; margin-top:38px; text-decoration:none; font:600 17px/1 var(--mono); color:#fff;
+    background:linear-gradient(100deg,var(--accent),var(--pink)); border-radius:999px; padding:18px 28px; box-shadow:0 18px 60px -18px rgba(230,57,140,.7); transition:transform .15s, filter .15s}
+  .mailbtn:hover{filter:brightness(1.1); transform:translateY(-2px)}
 
   footer{border-top:1px solid var(--line)}
-  .foot{display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; justify-content:space-between; padding:26px 0; color:var(--muted); font-size:14px}
+  .foot{display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; justify-content:space-between; padding:28px 0; color:var(--muted); font-size:14px}
   .foot a{color:var(--muted); text-decoration:none} .foot a:hover{color:var(--ink)}
-  .foot .mono{font-family:ui-monospace,Menlo,monospace}
+  .foot .mono{font-family:var(--mono)}
+
+  /* scroll reveal (only when JS runs, so no-JS readers see everything) */
+  .js [data-r]{opacity:0; transform:translateY(28px); transition:opacity .9s cubic-bezier(.2,.8,.2,1), transform .9s cubic-bezier(.2,.8,.2,1); transition-delay:var(--d,0s)}
+  .js [data-r].in{opacity:1; transform:none}
+
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important; transition:none!important}
+    .js [data-r]{opacity:1; transform:none}
+  }
 </style>
 </head>
 <body>
+<div class="spot" aria-hidden="true"></div>
+<div class="prog" aria-hidden="true"></div>
 
-<nav><div class="nav">
+<nav id="nav"><div class="nav">
   <a class="brand" href="#top">look interactive<span class="dot">.</span></a>
   <div class="nav-links">
     <a href="#edge">Edge</a>
@@ -159,149 +292,183 @@
 <header id="top">
   <canvas id="gpu" aria-hidden="true"></canvas>
   <div class="wrap">
-  <h1 class="mark">look&nbsp;interactive</h1>
-  <p class="tag">The dynamics of vision.</p>
-  <p class="sub">Where vision meets dynamics — how you look changes what you see. We build the
-    experiences, drive the displays, and run the system that keeps them live — we don't make screens,
-    we make them worth looking at.</p>
-  <a class="cta" href="#offerings">See what we do →</a>
-  <a class="cta ghost" href="/demo.html">Try the live demo →</a>
-</div></header>
+    <h1 class="mark"><span>look</span><span>interactive</span></h1>
+    <p class="sr">The dynamics of vision. How you look changes what you see.</p>
+    <div class="flip" id="flip" aria-hidden="true"><span class="fa">The dynamics of vision.</span><span class="fb">How you look changes what you see.</span></div>
+    <p class="angle" aria-hidden="true"><span>viewing angle</span><span class="track"><i></i></span><span id="angv">0°</span></p>
+    <p class="sub">We build the experiences, drive the displays, and run the system that keeps them
+      live — we don't make screens, we make them worth looking at.</p>
+    <div class="ctas">
+      <a class="cta" href="#offerings">See what we do →</a>
+      <a class="cta ghost" href="/demo.html">Try the live demo →</a>
+    </div>
+  </div>
+  <div class="scrollcue" aria-hidden="true">scroll</div>
+</header>
 
 <section id="offerings"><div class="wrap">
-  <p class="kicker">Offerings</p>
-  <h2 class="h2">Three parts of one system</h2>
-  <p class="lede">The experience, the screens we drive, and the delivery — designed to work together, available on their own.</p>
+  <p class="kicker" data-r>Offerings</p>
+  <h2 class="h2" data-r>Three parts of <em>one system</em></h2>
+  <p class="lede" data-r>The experience, the screens we drive, and the delivery — designed to work together, available on their own.</p>
   <div class="cards">
-    <a class="card c-vision" href="#vision">
-      <div class="glyph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
-      <h3>Vision &amp; Dynamics</h3>
+    <a class="card c-vision" href="#vision" data-r>
+      <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=".9"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="6" stroke-dasharray="1 2"/></svg>
+      <span class="cn">01</span>
+      <h3>Vision &amp;<br>Dynamics</h3>
       <p>Interactive light-field experiences — glasses-free imagery that holds depth and shifts as you move.</p>
-      <p class="more">Learn more →</p>
+      <span class="more">Learn more</span>
     </a>
-    <a class="card c-signage" href="#signage">
-      <div class="glyph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
-      <h3>Digital Signage</h3>
+    <a class="card c-signage" href="#signage" data-r style="--d:.08s">
+      <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=".9"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4M6 7h7M6 10h10M6 13h5"/></svg>
+      <span class="cn">02</span>
+      <h3>Digital<br>Signage</h3>
       <p>Managed digital signage, end to end — from a single screen to a networked fleet.</p>
-      <p class="more">Learn more →</p>
+      <span class="more">Learn more</span>
     </a>
-    <a class="card c-delivery" href="#delivery">
-      <div class="glyph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 7l10-5 10 5M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
-      <h3>Content Delivery</h3>
+    <a class="card c-delivery" href="#delivery" data-r style="--d:.16s">
+      <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=".9"><path d="M12 2v20M2 7l10-5 10 5M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      <span class="cn">03</span>
+      <h3>Content<br>Delivery</h3>
       <p>A content-delivery system that puts the right content on the right screen at the right time.</p>
-      <p class="more">Learn more →</p>
+      <span class="more">Learn more</span>
     </a>
   </div>
 </div></section>
 
-<section id="edge" class="ai"><div class="wrap"><div class="ai-panel">
-  <p class="kicker">Our edge · powered by Libre Computer</p>
-  <h2 class="h2">Hardware codecs, straight to HDMI</h2>
-  <p class="lede">Our strongest advantage runs under the hood. Courtesy of Libre Computer, dedicated
-    silicon decodes high-bitrate 4K and 8K HDR video in hardware and drives it directly out advanced
-    HDMI — flawlessly and around the clock, keeping a wall of displays frame-synced in lockstep at up
-    to 240&nbsp;Hz, at a fraction of the power and cost of media-player PCs. It is the engine behind
-    every display, sign, and stream we run.</p>
-  <div class="ai-grid">
-    <div class="ai-item"><b>Hardware decode</b><span>H.264, HEVC, VP9, AV1 at 4K/8K — no dropped frames.</span></div>
-    <div class="ai-item"><b>Advanced HDMI</b><span>HDR10, Dolby Vision &amp; HLG, high refresh, deep color.</span></div>
-    <div class="ai-item"><b>Direct to display</b><span>Codec output driven straight to HDMI, low latency.</span></div>
-    <div class="ai-item"><b>Frame-synced walls</b><span>Genlocked frame sync across multiple displays — up to 240&nbsp;Hz.</span></div>
-    <div class="ai-item"><b>Audio &amp; CEC</b><span>Audio passthrough and HDMI-CEC display control.</span></div>
-    <div class="ai-item"><b>Built for 24/7</b><span>Low-power, silent, fanless — reliable around the clock.</span></div>
-    <div class="ai-item"><b>Affordable scale</b><span>Drive fleets of premium screens without PC-grade cost.</span></div>
+<section id="edge"><div class="wrap">
+  <div class="edge-grid">
+    <div>
+      <p class="kicker" data-r>Our edge · powered by Libre Computer</p>
+      <h2 class="h2" data-r>Hardware codecs, <em>straight to HDMI</em></h2>
+      <p class="lede" data-r>Our strongest advantage runs under the hood. Courtesy of Libre Computer, dedicated
+        silicon decodes high-bitrate 4K and 8K HDR video in hardware and drives it directly out advanced
+        HDMI — flawlessly and around the clock, keeping a wall of displays frame-synced in lockstep at up
+        to 240&nbsp;Hz, at a fraction of the power and cost of media-player PCs. It is the engine behind
+        every display, sign, and stream we run.</p>
+    </div>
+    <div data-r style="--d:.1s">
+      <div class="wall" aria-hidden="true"><span class="wt">in lockstep</span></div>
+      <p class="wallcap">Illustration — one image across a 3×3 wall, every panel on the same frame.</p>
+    </div>
   </div>
-  <p class="soon"><span class="badge">Powered by</span> <a href="https://libre.computer" target="_blank" rel="noopener">Libre Computer</a> — the codec + HDMI engine at the core of our stack.</p>
-</div></div></section>
+  <div class="specs" data-r>
+    <div class="spec"><b>Hardware decode</b><span>H.264, HEVC, VP9, AV1 at 4K/8K — no dropped frames.</span></div>
+    <div class="spec"><b>Advanced HDMI</b><span>HDR10, Dolby Vision &amp; HLG, high refresh, deep color.</span></div>
+    <div class="spec"><b>Direct to display</b><span>Codec output driven straight to HDMI, low latency.</span></div>
+    <div class="spec"><b>Frame-synced walls</b><span>Genlocked frame sync across multiple displays — up to 240&nbsp;Hz.</span></div>
+    <div class="spec"><b>Audio &amp; CEC</b><span>Audio passthrough and HDMI-CEC display control.</span></div>
+    <div class="spec"><b>Built for 24/7</b><span>Low-power, silent, fanless — reliable around the clock.</span></div>
+    <div class="spec"><b>Affordable scale</b><span>Drive fleets of premium screens without PC-grade cost.</span></div>
+  </div>
+  <p class="powered" data-r><span class="badge">Powered by</span> <a href="https://libre.computer" target="_blank" rel="noopener">Libre Computer</a> — the codec + HDMI engine at the core of our stack.</p>
+</div></section>
 
-<section id="holo" class="off off-v"><div class="wrap">
-  <p class="kicker"><span class="badge">Latest</span> Holo &amp; lenticular displays</p>
-  <div class="bar"></div>
-  <h2 class="h2">Light that seems to float</h2>
-  <p class="lede">Holo-luminescent and lenticular displays are the latest craze — self-lit holographic
-    imagery and glasses-free 3D that shift as you move. We don't make the panels: we partner with the
-    leading holo and lenticular display vendors and build the applications, content, and drive systems
-    that make them worth looking at.</p>
-  <div class="caplist">
-    <div class="cap"><i>✓</i><div><b>Vendor-agnostic</b><span>The right panel for the job, sourced from our display partners.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Application design</b><span>Experiences built for each display's optics and depth.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Content pipeline</b><span>Authored and optimized per display — holo, lenticular, light-field.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Flawless drive</b><span>Our codec → HDMI engine runs them at full quality, 24/7.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Interactive &amp; reactive</b><span>Touch, gesture, and AI-driven content that responds.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Turnkey</b><span>From concept to installed, calibrated, and live.</span></div></div>
+<section id="holo" class="off off-v holo"><div class="wrap holo-grid">
+  <div>
+    <p class="kicker" data-r><span class="badge">Latest</span> Holo &amp; lenticular displays</p>
+    <h2 class="h2" data-r>Light that <em>seems to float</em></h2>
+    <p class="lede" data-r>Holo-luminescent and lenticular displays are the latest craze — self-lit holographic
+      imagery and glasses-free 3D that shift as you move. We don't make the panels: we partner with the
+      leading holo and lenticular display vendors and build the applications, content, and drive systems
+      that make them worth looking at.</p>
+    <div class="caplist" data-r>
+      <div class="cap"><div><b>Vendor-agnostic</b><span>The right panel for the job, sourced from our display partners.</span></div></div>
+      <div class="cap"><div><b>Application design</b><span>Experiences built for each display's optics and depth.</span></div></div>
+      <div class="cap"><div><b>Content pipeline</b><span>Authored and optimized per display — holo, lenticular, light-field.</span></div></div>
+      <div class="cap"><div><b>Flawless drive</b><span>Our codec → HDMI engine runs them at full quality, 24/7.</span></div></div>
+      <div class="cap"><div><b>Interactive &amp; reactive</b><span>Touch, gesture, and AI-driven content that responds.</span></div></div>
+      <div class="cap"><div><b>Turnkey</b><span>From concept to installed, calibrated, and live.</span></div></div>
+    </div>
+    <div class="ideal" data-r>
+      <p class="kicker">Ideal for</p>
+      <ul><li>Flagship retail</li><li>Windows &amp; storefronts</li><li>Events &amp; stages</li><li>Museums</li><li>Showrooms</li></ul>
+    </div>
   </div>
-  <div class="ideal">
-    <p class="kicker">Ideal for</p>
-    <ul><li>Flagship retail</li><li>Windows &amp; storefronts</li><li>Events &amp; stages</li><li>Museums</li><li>Showrooms</li></ul>
+  <div class="stage" aria-hidden="true" data-r style="--d:.1s">
+    <div class="beam"></div>
+    <div class="emit"></div>
+    <div class="obj">
+      <div class="ring" style="--i:0;--h:250"></div>
+      <div class="ring" style="--i:1;--h:190"></div>
+      <div class="ring" style="--i:2;--h:175"></div>
+      <div class="ring" style="--i:3;--h:320"></div>
+      <div class="ring" style="--i:4;--h:35"></div>
+    </div>
+    <div class="core"></div>
   </div>
 </div></section>
 
-<section id="vision" class="off off-v"><div class="wrap">
-  <p class="kicker"><span class="num">01</span> Vision &amp; Dynamics</p>
-  <div class="bar"></div>
-  <h2 class="h2">Imagery with depth — that moves with you</h2>
-  <p class="lede">Glasses-free, headset-free visuals that carry real depth and shift naturally as the
-    viewer moves. We author the scene, render the light field, and drive the display — turning flat
-    content into something you look <em>around</em>, not just <em>at</em>.</p>
-  <div class="caplist">
-    <div class="cap"><i>✓</i><div><b>Glasses-free 3D</b><span>True light-field depth — no glasses, no headset.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Motion-reactive</b><span>Parallax and reveals that respond to viewpoint and gaze.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Interactive</b><span>Touch, gesture, and sensor-driven content.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Custom pipeline</b><span>From 3D scenes, CAD / product models, video, and live data.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Any format</b><span>Desktop pieces to large-format installations.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Turnkey content</b><span>We design, produce, and keep the experience fresh.</span></div></div>
-  </div>
-  <div class="ideal">
-    <p class="kicker">Ideal for</p>
-    <ul><li>Retail showpieces</li><li>Museums &amp; exhibits</li><li>Brand activations</li><li>Product visualization</li><li>Trade shows</li></ul>
-  </div>
-</div></section>
-
-<section id="signage" class="off off-s"><div class="wrap">
-  <p class="kicker"><span class="num">02</span> Digital Signage</p>
-  <div class="bar"></div>
-  <h2 class="h2">From one screen to a whole network</h2>
-  <p class="lede">Managed digital signage, handled end to end. Whether it's a single storefront display
-    or hundreds of screens across sites, we cover the hardware, the design, the scheduling, and the
-    day-to-day management — so your screens always show the right thing.</p>
-  <div class="caplist">
-    <div class="cap"><i>✓</i><div><b>Any scale</b><span>A single screen to multi-site fleets.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Remote management</b><span>Monitor health, uptime, and playback from anywhere.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Design &amp; templates</b><span>Layouts, motion, and brand-consistent content.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Scheduling &amp; dayparting</b><span>The right content by time, place, and trigger.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Live data</b><span>Menus, pricing, wayfinding, feeds, and social.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Hardware &amp; support</b><span>Provisioning, install, and ongoing support.</span></div></div>
-  </div>
-  <div class="ideal">
-    <p class="kicker">Ideal for</p>
-    <ul><li>Retail &amp; hospitality</li><li>Video walls</li><li>QSR menu boards</li><li>Corporate lobbies</li><li>Wayfinding</li><li>Events &amp; venues</li></ul>
+<section id="vision" class="off off-v"><div class="wrap off-grid">
+  <div class="off-side" data-r><div class="bignum" aria-hidden="true">01</div><p class="kicker">Vision &amp; Dynamics</p></div>
+  <div>
+    <h2 class="h2" data-r>Imagery with depth — <em>that moves with you</em></h2>
+    <p class="lede" data-r>Glasses-free, headset-free visuals that carry real depth and shift naturally as the
+      viewer moves. We author the scene, render the light field, and drive the display — turning flat
+      content into something you look <em>around</em>, not just <em>at</em>.</p>
+    <div class="caplist" data-r>
+      <div class="cap"><div><b>Glasses-free 3D</b><span>True light-field depth — no glasses, no headset.</span></div></div>
+      <div class="cap"><div><b>Motion-reactive</b><span>Parallax and reveals that respond to viewpoint and gaze.</span></div></div>
+      <div class="cap"><div><b>Interactive</b><span>Touch, gesture, and sensor-driven content.</span></div></div>
+      <div class="cap"><div><b>Custom pipeline</b><span>From 3D scenes, CAD / product models, video, and live data.</span></div></div>
+      <div class="cap"><div><b>Any format</b><span>Desktop pieces to large-format installations.</span></div></div>
+      <div class="cap"><div><b>Turnkey content</b><span>We design, produce, and keep the experience fresh.</span></div></div>
+    </div>
+    <div class="ideal" data-r>
+      <p class="kicker">Ideal for</p>
+      <ul><li>Retail showpieces</li><li>Museums &amp; exhibits</li><li>Brand activations</li><li>Product visualization</li><li>Trade shows</li></ul>
+    </div>
   </div>
 </div></section>
 
-<section id="delivery" class="off off-d"><div class="wrap">
-  <p class="kicker"><span class="num">03</span> Content Delivery</p>
-  <div class="bar"></div>
-  <h2 class="h2">The right content, everywhere, in real time</h2>
-  <p class="lede">The system underneath it all: a content-delivery platform that gets the right content to
-    the right screen at the right moment. Manage everything from one place, schedule with rules, and push
-    updates instantly — across the displays we drive, your existing screens, and beyond.</p>
-  <div class="caplist">
-    <div class="cap"><i>✓</i><div><b>Centralized library</b><span>One place to manage all your content.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Rules &amp; scheduling</b><span>Dayparting, playlists, and conditional playout.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Real-time push</b><span>Instant updates across every endpoint.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Any endpoint</b><span>Our light-field displays, third-party players, and web.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Resilient</b><span>Offline caching and sync keep screens playing.</span></div></div>
-    <div class="cap"><i>✓</i><div><b>Proof of play</b><span>Analytics and reporting on what showed where.</span></div></div>
-  </div>
-  <div class="ideal">
-    <p class="kicker">Ideal for</p>
-    <ul><li>Multi-location content ops</li><li>Powering signage networks</li><li>Feeding the displays</li><li>Agencies &amp; integrators</li></ul>
+<section id="signage" class="off off-s"><div class="wrap off-grid">
+  <div class="off-side" data-r><div class="bignum" aria-hidden="true">02</div><p class="kicker">Digital Signage</p></div>
+  <div>
+    <h2 class="h2" data-r>From one screen to <em>a whole network</em></h2>
+    <p class="lede" data-r>Managed digital signage, handled end to end. Whether it's a single storefront display
+      or hundreds of screens across sites, we cover the hardware, the design, the scheduling, and the
+      day-to-day management — so your screens always show the right thing.</p>
+    <div class="caplist" data-r>
+      <div class="cap"><div><b>Any scale</b><span>A single screen to multi-site fleets.</span></div></div>
+      <div class="cap"><div><b>Remote management</b><span>Monitor health, uptime, and playback from anywhere.</span></div></div>
+      <div class="cap"><div><b>Design &amp; templates</b><span>Layouts, motion, and brand-consistent content.</span></div></div>
+      <div class="cap"><div><b>Scheduling &amp; dayparting</b><span>The right content by time, place, and trigger.</span></div></div>
+      <div class="cap"><div><b>Live data</b><span>Menus, pricing, wayfinding, feeds, and social.</span></div></div>
+      <div class="cap"><div><b>Hardware &amp; support</b><span>Provisioning, install, and ongoing support.</span></div></div>
+    </div>
+    <div class="ideal" data-r>
+      <p class="kicker">Ideal for</p>
+      <ul><li>Retail &amp; hospitality</li><li>Video walls</li><li>QSR menu boards</li><li>Corporate lobbies</li><li>Wayfinding</li><li>Events &amp; venues</li></ul>
+    </div>
   </div>
 </div></section>
 
-<section id="ai" class="ai"><div class="wrap"><div class="ai-panel">
+<section id="delivery" class="off off-d"><div class="wrap off-grid">
+  <div class="off-side" data-r><div class="bignum" aria-hidden="true">03</div><p class="kicker">Content Delivery</p></div>
+  <div>
+    <h2 class="h2" data-r>The right content, <em>everywhere, in real time</em></h2>
+    <p class="lede" data-r>The system underneath it all: a content-delivery platform that gets the right content to
+      the right screen at the right moment. Manage everything from one place, schedule with rules, and push
+      updates instantly — across the displays we drive, your existing screens, and beyond.</p>
+    <div class="caplist" data-r>
+      <div class="cap"><div><b>Centralized library</b><span>One place to manage all your content.</span></div></div>
+      <div class="cap"><div><b>Rules &amp; scheduling</b><span>Dayparting, playlists, and conditional playout.</span></div></div>
+      <div class="cap"><div><b>Real-time push</b><span>Instant updates across every endpoint.</span></div></div>
+      <div class="cap"><div><b>Any endpoint</b><span>Our light-field displays, third-party players, and web.</span></div></div>
+      <div class="cap"><div><b>Resilient</b><span>Offline caching and sync keep screens playing.</span></div></div>
+      <div class="cap"><div><b>Proof of play</b><span>Analytics and reporting on what showed where.</span></div></div>
+    </div>
+    <div class="ideal" data-r>
+      <p class="kicker">Ideal for</p>
+      <ul><li>Multi-location content ops</li><li>Powering signage networks</li><li>Feeding the displays</li><li>Agencies &amp; integrators</li></ul>
+    </div>
+  </div>
+</div></section>
+
+<section id="ai"><div class="wrap"><div class="ai-panel" id="aipanel" data-r>
+  <canvas id="dots" aria-hidden="true"></canvas>
+  <div class="reticle" id="reticle" aria-hidden="true"></div>
   <p class="kicker">Intelligence</p>
-  <h2 class="h2">Displays that see — and respond</h2>
+  <h2 class="h2">Displays that see — <em>and respond</em></h2>
   <p class="lede">We embrace AI at the edge. Vision inferencing lets a display understand its audience
     in real time — how many are watching and how long they look — then adapt what it shows to match.</p>
   <div class="ai-grid">
@@ -315,40 +482,38 @@
   <p class="soon"><span class="badge">Coming soon</span> Generative AI — create and adapt content on the fly, tuned to the audience and the moment.</p>
 </div></div></section>
 
-<section id="approach"><div class="wrap band">
-  <div>
-    <p class="kicker">Approach</p>
-    <p class="big">One integrated stack — from the pixels to the platform.</p>
-    <p class="lede">Start with a single screen or a full deployment. The same platform designs the
-      experience, drives the display, and delivers the content — so what you see stays sharp, current, and in sync.</p>
-  </div>
-  <div class="steps">
-    <div class="step"><b>1 · Design</b><span>Experience + content</span></div>
-    <div class="step"><b>2 · Display</b><span>Screens + light-field</span></div>
-    <div class="step"><b>3 · Deliver</b><span>Schedule + update live</span></div>
+<section id="approach"><div class="wrap">
+  <p class="kicker" data-r>Approach</p>
+  <h2 class="h2" data-r>One integrated stack — <em>from the pixels to the platform</em></h2>
+  <p class="lede" data-r>Start with a single screen or a full deployment. The same platform designs the
+    experience, drives the display, and delivers the content — so what you see stays sharp, current, and in sync.</p>
+  <div class="pipe" data-r>
+    <div class="stepx"><div class="dotn">1</div><h3>Design</h3><p>Experience + content</p></div>
+    <div class="stepx"><div class="dotn">2</div><h3>Display</h3><p>Screens + light-field</p></div>
+    <div class="stepx"><div class="dotn">3</div><h3>Deliver</h3><p>Schedule + update live</p></div>
   </div>
 </div></section>
 
 <section id="customers"><div class="wrap">
-  <p class="kicker">Who we work with</p>
-  <h2 class="h2">Trusted across industries</h2>
-  <p class="lede">Our displays, signage, and delivery platform are relied on by teams spanning gaming,
+  <p class="kicker" data-r>Who we work with</p>
+  <h2 class="h2" data-r>Trusted <em>across industries</em></h2>
+  <p class="lede" data-r>Our displays, signage, and delivery platform are relied on by teams spanning gaming,
     digital-signage, automotive, and industrial technology — from casino floors to global enterprises.</p>
-  <ul class="sectors">
-    <li>Casino &amp; gaming</li>
-    <li>Signage platforms</li>
-    <li>Automotive</li>
-    <li>Industrial &amp; enterprise</li>
-  </ul>
-</div></section>
+  <ul class="sr"><li>Casino &amp; gaming</li><li>Signage platforms</li><li>Automotive</li><li>Industrial &amp; enterprise</li></ul>
+</div>
+  <div class="marquee" aria-hidden="true"><div class="mq">
+    <span>Casino &amp; gaming</span><i>✦</i><span>Signage platforms</span><i>✦</i><span>Automotive</span><i>✦</i><span>Industrial &amp; enterprise</span><i>✦</i>
+    <span>Casino &amp; gaming</span><i>✦</i><span>Signage platforms</span><i>✦</i><span>Automotive</span><i>✦</i><span>Industrial &amp; enterprise</span><i>✦</i>
+  </div></div>
+</section>
 
 <section id="partners"><div class="wrap">
-  <p class="kicker">Technology enablement partners</p>
-  <h2 class="h2">Built with the best in silicon and AI</h2>
-  <p class="lede">We work hand in hand with the platforms that power what we build — from single-board
+  <p class="kicker" data-r>Technology enablement partners</p>
+  <h2 class="h2" data-r>Built with the best in <em>silicon and AI</em></h2>
+  <p class="lede" data-r>We work hand in hand with the platforms that power what we build — from single-board
     computers and SoCs to AI runtimes — alongside the holo and lenticular display vendors whose panels
     we drive.</p>
-  <ul class="partners">
+  <ul class="partners" data-r>
     <li><a href="https://libre.computer" target="_blank" rel="noopener">Libre Computer</a></li>
     <li><a href="https://gaema.ai" target="_blank" rel="noopener">Gaema AI</a></li>
     <li><a href="https://www.amlogic.com" target="_blank" rel="noopener">Amlogic</a></li>
@@ -358,10 +523,10 @@
 </div></section>
 
 <section id="contact"><div class="wrap">
-  <p class="kicker">Contact</p>
-  <h2 class="contact-h">Let's build something worth looking at.</h2>
-  <p class="lede">Tell us about your space, your audience, or your idea — we'll take it from vision to live.</p>
-  <a class="mailbtn" href="mailto:hello@look-interactive.com">hello@look-interactive.com →</a>
+  <p class="kicker" data-r>Contact</p>
+  <h2 class="contact-h" data-r>Let's build something <em>worth looking at.</em></h2>
+  <p class="lede" data-r>Tell us about your space, your audience, or your idea — we'll take it from vision to live.</p>
+  <a class="mailbtn" href="mailto:hello@look-interactive.com" data-r>hello@look-interactive.com →</a>
 </div></section>
 
 <footer><div class="wrap foot">
@@ -370,19 +535,85 @@
 </div></footer>
 
 <script>
-/* Animated, mouse-reactive "light-field" hero shader.
+/* Shared "viewing angle": pointer position eased into --mx/--my on :root.
+   With no pointer (touch, idle) the angle drifts on its own so the lenticular effects still read. */
+(function(){
+  var root=document.documentElement, reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var t={x:.5,y:.5}, m={x:.5,y:.5}, last=-1e9, side=1, p=1;
+  window.addEventListener('pointermove',function(e){ if(e.pointerType==='touch') return; t.x=e.clientX/innerWidth; t.y=e.clientY/innerHeight; last=performance.now(); },{passive:true});
+  var flip=document.getElementById('flip'), angv=document.getElementById('angv'), nav=document.getElementById('nav');
+  function scroll(){ var h=document.documentElement.scrollHeight-innerHeight; root.style.setProperty('--sp',h>0?(scrollY/h).toFixed(4):0); nav.classList.toggle('solid',scrollY>40); }
+  addEventListener('scroll',scroll,{passive:true}); scroll();
+  (function frame(now){
+    if(!reduce && now-last>2500){ t.x=.5+.42*Math.sin(now/1900); t.y=.5+.18*Math.sin(now/2700); }
+    m.x+=(t.x-m.x)*.08; m.y+=(t.y-m.y)*.08;
+    root.style.setProperty('--mx',m.x.toFixed(4)); root.style.setProperty('--my',m.y.toFixed(4));
+    /* a real lenticular snaps between images: pick a side with hysteresis, then flip quickly */
+    if(m.x<.45) side=1; else if(m.x>.55) side=0;
+    var step=Math.min(1,(now-(frame.t||now))/250); frame.t=now;
+    p=side>p?Math.min(side,p+step):Math.max(side,p-step);
+    if(flip){ flip.style.setProperty('--p',p.toFixed(3)); flip.dataset.s=p===1?'a':p===0?'b':''; }
+    if(angv) angv.textContent=(m.x>.5?'+':m.x<.5?'−':'')+Math.abs(Math.round((m.x-.5)*60))+'°';
+    requestAnimationFrame(frame);
+  })(performance.now());
+  window.__view=m;
+
+  /* scroll reveal */
+  var els=document.querySelectorAll('[data-r]');
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }); },{rootMargin:'0px 0px -8% 0px'});
+    els.forEach(function(el){ io.observe(el); });
+  } else els.forEach(function(el){ el.classList.add('in'); });
+
+  /* holographic card tilt */
+  document.querySelectorAll('.card').forEach(function(c){
+    c.addEventListener('pointermove',function(e){ var r=c.getBoundingClientRect(), x=(e.clientX-r.left)/r.width, y=(e.clientY-r.top)/r.height;
+      c.classList.add('live'); c.style.setProperty('--rx',((.5-y)*12).toFixed(2)+'deg'); c.style.setProperty('--ry',((x-.5)*14).toFixed(2)+'deg');
+      c.style.setProperty('--gx',(x*100).toFixed(1)+'%'); c.style.setProperty('--gy',(y*100).toFixed(1)+'%'); });
+    c.addEventListener('pointerleave',function(){ c.classList.remove('live'); c.style.setProperty('--rx','0deg'); c.style.setProperty('--ry','0deg'); });
+  });
+})();
+
+/* AI panel: a dot field that brightens where the "viewer" is looking, with a tracking reticle. */
+(function(){
+  var panel=document.getElementById('aipanel'), cv=document.getElementById('dots'), ret=document.getElementById('reticle');
+  if(!panel||!cv||!cv.getContext) return;
+  var ctx=cv.getContext('2d'), DPR=Math.min(devicePixelRatio||1,2), W=0,H=0, inView=false, hover=false;
+  var g={x:.7,y:.4}, gt={x:.7,y:.4};
+  function resize(){ var r=panel.getBoundingClientRect(); W=r.width; H=r.height; cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
+  panel.addEventListener('pointermove',function(e){ var r=panel.getBoundingClientRect(); gt.x=(e.clientX-r.left)/r.width; gt.y=(e.clientY-r.top)/r.height; hover=true; });
+  panel.addEventListener('pointerleave',function(){ hover=false; });
+  try{ new IntersectionObserver(function(es){ inView=es[0].isIntersecting; }).observe(panel); }catch(e){ inView=true; }
+  addEventListener('resize',resize,{passive:true}); resize();
+  var pal=[[106,92,255],[38,208,206],[230,57,140]];
+  (function frame(now){
+    requestAnimationFrame(frame);
+    if(!inView) return;
+    if(!hover){ gt.x=.62+.28*Math.sin(now/2300); gt.y=.45+.3*Math.sin(now/1700); }
+    g.x+=(gt.x-g.x)*.07; g.y+=(gt.y-g.y)*.07;
+    var gx=g.x*W, gy=g.y*H, s=22, R=Math.max(160,W*.18);
+    ctx.clearRect(0,0,W,H);
+    for(var y=s/2;y<H;y+=s) for(var x=s/2;x<W;x+=s){
+      var d=Math.hypot(x-gx,y-gy), k=Math.max(0,1-d/R); k=k*k;
+      var c=pal[Math.floor((x/W)*2.999)];
+      ctx.fillStyle='rgba('+c[0]+','+c[1]+','+c[2]+','+(0.10+0.75*k).toFixed(3)+')';
+      ctx.beginPath(); ctx.arc(x,y,0.9+2.6*k,0,6.2832); ctx.fill();
+    }
+    ret.style.transform='translate('+gx.toFixed(1)+'px,'+gy.toFixed(1)+'px)'; ret.classList.add('on');
+  })(performance.now());
+})();
+
+/* Hero: animated, mouse-reactive light field rendered through a virtual lenticular sheet.
    Progressive enhancement: WebGPU (WGSL) -> WebGL2 -> WebGL1 -> CSS glow. */
 (function(){
   var cv=document.getElementById('gpu'); if(!cv) return;
   var DPR=Math.min(window.devicePixelRatio||1,2);
   var W=1,H=1, active=true, inView=true;
-  var mouse={x:.5,y:.5}, target={x:.5,y:.5};
   var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  window.addEventListener('pointermove',function(e){ target.x=e.clientX/window.innerWidth; target.y=1-e.clientY/window.innerHeight; },{passive:true});
+  var view=window.__view||{x:.5,y:.5};
   document.addEventListener('visibilitychange',function(){ active=!document.hidden&&inView; });
   try{ new IntersectionObserver(function(es){ inView=es[0].isIntersecting; active=!document.hidden&&inView; }).observe(cv); }catch(e){}
   function resize(){ var r=cv.getBoundingClientRect(); W=Math.max(1,Math.floor(r.width*DPR)); H=Math.max(1,Math.floor(r.height*DPR)); cv.width=W; cv.height=H; }
-  function ease(){ mouse.x+=(target.x-mouse.x)*0.05; mouse.y+=(target.y-mouse.y)*0.05; }
 
   var GLSL_BODY=[
     "vec3 iri(float t){ t=fract(t);",
@@ -390,7 +621,9 @@
     "  float s=t*3.0;",
     "  if(s<1.0) return mix(A,B,s); else if(s<2.0) return mix(B,C,s-1.0); return mix(C,A,s-2.0); }",
     "vec3 field(vec2 frag){",
+    "  float cw=max(7.0,uRes.y/70.0); float ln=frag.x/cw; float f=fract(ln);",
     "  vec2 uv=(frag-0.5*uRes)/uRes.y; uv+=(uMouse-0.5)*0.20;",
+    "  uv.x+=(f-0.5)*0.10*(uMouse.x-0.5+0.25*sin(floor(ln)*0.37+uT*0.2));",
     "  vec2 p=uv*1.4; float t=uT*0.08;",
     "  for(int i=0;i<4;i++){ float fi=float(i);",
     "    p+=vec2(0.32*sin(1.7*p.y+t+fi*1.1), 0.32*cos(1.7*p.x-t*0.9+fi*1.3)); }",
@@ -399,6 +632,9 @@
     "  float hue=0.55+0.45*acc+0.30*p.x+0.18*uv.y-t*0.30;",
     "  vec3 col=iri(hue)*(0.13+0.52*acc*acc);",
     "  col+=vec3(0.02,0.022,0.032);",
+    "  float ridge=sin(f*3.14159);",
+    "  col*=0.80+0.20*ridge;",
+    "  col+=vec3(0.9,0.9,1.0)*pow(ridge,24.0)*0.05*(0.5+acc);",
     "  col*=smoothstep(1.6,0.1,length(uv)*0.9); return col; }"
   ].join("\n");
 
@@ -422,7 +658,7 @@
     gl.useProgram(p);
     var uR=gl.getUniformLocation(p,'uRes'),uT=gl.getUniformLocation(p,'uT'),uM=gl.getUniformLocation(p,'uMouse');
     var t0=performance.now();
-    (function frame(now){ if(active){ ease(); gl.viewport(0,0,W,H); gl.uniform2f(uR,W,H); gl.uniform1f(uT,(now-t0)*0.001*(reduce?0.0:1.0)); gl.uniform2f(uM,mouse.x,mouse.y); gl.drawArrays(gl.TRIANGLES,0,3); } requestAnimationFrame(frame); })(t0);
+    (function frame(now){ if(active){ gl.viewport(0,0,W,H); gl.uniform2f(uR,W,H); gl.uniform1f(uT,(now-t0)*0.001*(reduce?0.0:1.0)); gl.uniform2f(uM,view.x,1-view.y); gl.drawArrays(gl.TRIANGLES,0,3); } requestAnimationFrame(frame); })(t0);
     return true;
   }
 
@@ -443,7 +679,9 @@
           "  let A=vec3f(0.42,0.34,1.0); let B=vec3f(0.92,0.25,0.62); let C=vec3f(0.18,0.85,0.82);",
           "  let s=t*3.0; if(s<1.0){return mix(A,B,s);} else if(s<2.0){return mix(B,C,s-1.0);} return mix(C,A,s-2.0); }",
           "@fragment fn fs(@builtin(position) frag:vec4f)->@location(0) vec4f {",
-          "  let uv=(frag.xy-0.5*u.res)/u.res.y + (u.mouse-0.5)*0.20;",
+          "  let cw=max(7.0,u.res.y/70.0); let ln=frag.x/cw; let f=fract(ln);",
+          "  var uv=(frag.xy-0.5*u.res)/u.res.y + (u.mouse-0.5)*0.20;",
+          "  uv.x=uv.x+(f-0.5)*0.10*(u.mouse.x-0.5+0.25*sin(floor(ln)*0.37+u.t*0.2));",
           "  var p=uv*1.4; let t=u.t*0.08;",
           "  for(var i=0;i<4;i=i+1){ let fi=f32(i);",
           "    p=p+vec2f(0.32*sin(1.7*p.y+t+fi*1.1), 0.32*cos(1.7*p.x-t*0.9+fi*1.3)); }",
@@ -452,6 +690,9 @@
           "  let hue=0.55+0.45*acc+0.30*p.x+0.18*uv.y-t*0.30;",
           "  var col=iri(hue)*(0.13+0.52*acc*acc);",
           "  col=col+vec3f(0.02,0.022,0.032);",
+          "  let ridge=sin(f*3.14159);",
+          "  col=col*(0.80+0.20*ridge);",
+          "  col=col+vec3f(0.9,0.9,1.0)*pow(ridge,24.0)*0.05*(0.5+acc);",
           "  col=col*smoothstep(1.6,0.1,length(uv)*0.9); return vec4f(col,1.0); }"
         ].join("\n");
         var mod=device.createShaderModule({code:wgsl});
@@ -462,7 +703,7 @@
           var bind=device.createBindGroup({layout:pipe.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:ubuf}}]});
           var t0=performance.now(), arr=new Float32Array(8);
           (function frame(now){
-            if(active){ ease(); arr[0]=W;arr[1]=H;arr[2]=(now-t0)*0.001*(reduce?0.0:1.0);arr[4]=mouse.x;arr[5]=mouse.y;
+            if(active){ arr[0]=W;arr[1]=H;arr[2]=(now-t0)*0.001*(reduce?0.0:1.0);arr[4]=view.x;arr[5]=1-view.y;
               device.queue.writeBuffer(ubuf,0,arr);
               var enc=device.createCommandEncoder();
               var pass=enc.beginRenderPass({colorAttachments:[{view:ctx.getCurrentTexture().createView(),clearValue:{r:0,g:0,b:0,a:1},loadOp:'clear',storeOp:'store'}]});

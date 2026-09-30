@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://look-interactive.com/sitemap.xml

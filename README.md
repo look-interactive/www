@@ -16,5 +16,10 @@ https://look-interactive.com.
   **Wall** (bezel-compensated 3×3 wall, genlock on/off, real MediaRecorder
   codec round-trip with measured bitrate). Deep-link a mode with `#window`,
   `#holo`, `#lenti` or `#wall`. The camera never leaves the page.
+- `404.html` — served by GitHub Pages for any missing path (lenticular
+  "404" ↔ "look again."; `noindex`).
+- `robots.txt`, `sitemap.xml` — crawler hints; add a `<url>` to the sitemap
+  for any new page. Both pages carry a `<link rel="canonical">`; the index
+  also carries schema.org Organization JSON-LD.
 - `CNAME` — custom apex domain (look-interactive.com).
 - `.nojekyll` — serve files as-is, no Jekyll processing.

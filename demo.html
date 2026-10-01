@@ -787,11 +787,17 @@ const PORTAL=(()=>{ const q=new URLSearchParams(location.search).get('portal');
 const GEN_GIVE_UP_MS=15*60*1000;   // the portal's own job deadline; past it the job is gone
 let genImg=null, genSite=null, genPreset=null, genSubject=null, genJob=null, genPoll=0, genWait=0, genStart=0, genPhase='';
 let genInflight=null, genCancelPending=false;   // genInflight: the job id a poll is in flight for
+let genPollCtl=null;                           // aborts the in-flight poll when its job is cancelled
+const genCancelled=new Set();                  // jobs this page cancelled: never picked up again
+// This page's own random token: the portal names a running job only to the page that
+// started it (an address alone is shared behind a NAT and says nothing about whose job).
+const genToken=Array.from(crypto.getRandomValues(new Uint8Array(18)),b=>b.toString(16).padStart(2,'0')).join('');
 /* headersMs bounds the wait for the server to answer; once it has, the body (a
    finished picture is ~3 MB) gets its own, longer allowance -- a slow link must
    not abort a download the server already counted as delivered. */
-async function portalCall(method,path,body,headersMs){
+async function portalCall(method,path,body,headersMs,ctlOut){
   const ctl=new AbortController();
+  if(ctlOut) ctlOut.ctl=ctl;
   let to=setTimeout(()=>ctl.abort(),headersMs||20000);
   try{
     const r=await fetch(PORTAL+path,{method,signal:ctl.signal,credentials:'omit',cache:'no-store',
@@ -854,9 +860,10 @@ async function genPollOnce(jid){
   if(Date.now()-genStart>GEN_GIVE_UP_MS){ genJob=null; genBusy(false); genOutcome('This is taking too long, so we stopped waiting. Try again later.','lost'); return; }
   if(document.hidden){ schedulePoll(jid,5000); return; }   // nobody is looking
   genInflight=jid;
+  const holder={};
   let st,v;
-  try{ [st,v]=await portalCall('GET','/jobs/'+jid,null,30000); }
-  finally{ genInflight=null; }
+  try{ const p=portalCall('GET','/jobs/'+jid,null,30000,holder); genPollCtl=holder.ctl; [st,v]=await p; }
+  finally{ genInflight=null; genPollCtl=null; }
   if(genJob!==jid) return;            // cancelled or replaced while this check was in flight
   // A 200 whose body did not arrive whole (a connection cut mid-picture) is a
   // passing state too: the server still holds the picture.
@@ -894,11 +901,13 @@ $('genBtn').addEventListener('click',async ()=>{
   genBusy(true); genNote('Sending…','send');
   // The portal may take up to ~50 s to accept (free-text screen + router start);
   // giving up sooner would leave a job running that this page never shows.
-  const [st,v]=await portalCall('POST','/generate',{preset:genPreset,subject:genSubject},60000);
-  if(st===429 && v.error==='one_at_a_time' && v.job){
-    // This visitor already has a job running (say, a start this page gave up on):
-    // follow it instead of waiting it out blind.
-    genJob=v.job; genStart=Date.now(); genNote('Picking up your picture in progress…','q-');
+  const [st,v]=await portalCall('POST','/generate',{preset:genPreset,subject:genSubject,token:genToken},60000);
+  if(st===429 && v.error==='one_at_a_time' && v.job && !genCancelled.has(v.job)){
+    // This page already has a job running (a start it gave up on): follow it instead
+    // of waiting it out blind. Never one this page cancelled.
+    genJob=v.job; genStart=Date.now();
+    if(genCancelPending){ genCancelPending=false; cancelJob(); return; }
+    genNote('Picking up your picture in progress…','q-');
     schedulePoll(genJob,500); return; }
   if(st===202){
     genJob=v.job; genStart=Date.now();
@@ -913,12 +922,14 @@ $('genBtn').addEventListener('click',async ()=>{
 });
 async function cancelJob(){
   const jid=genJob; if(!jid) return;
+  genCancelled.add(jid);
   clearTimeout(genPoll); genJob=null; genBusy(false); genNote('Cancelled.','cancel');
-  // A cancel lost to an outage would leave the job running (and charged): retry it
-  // for the two minutes the edge may be away.
+  if(genPollCtl && genInflight===jid) genPollCtl.abort();   // free the poll slot now
+  // A cancel lost to an outage (or refused as busy) would leave the job running and
+  // charged: retry it for the two minutes the edge may be away.
   for(let wait=2000, t0=Date.now(); Date.now()-t0<120000; wait=Math.min(wait*2,20000)){
     const [st]=await portalCall('POST','/jobs/'+jid+'/cancel',{});
-    if(st!==0 && st<500) return;
+    if(st!==0 && st<500 && st!==429) return;
     await new Promise(r=>setTimeout(r,wait));
   }
 }
@@ -932,7 +943,8 @@ $('genCancel').addEventListener('click',()=>{
   let st,site;
   for(let wait=3000, t0=Date.now();; wait=Math.min(wait*2,30000)){
     [st,site]=await portalCall('GET','/site');
-    if((st!==0 && st<500) || Date.now()-t0>120000) break;
+    const passing=st===0||st>=500||st===429||(st===200&&!site.mode);  // incl. a cut-off body
+    if(!passing || Date.now()-t0>120000) break;
     await new Promise(r=>setTimeout(r,wait));
   }
   // Only a presets-mode site with a subject list for every preset gets a panel;

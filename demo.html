@@ -176,7 +176,7 @@
         <button class="btn" id="genCancel" hidden>Cancel</button>
       </div>
       <p class="note" id="genNote" tabindex="-1"></p>
-      <p class="note dim">Generating sends only the style and subject you pick to our servers. Pictures are checked before they are shown and are not kept.</p>
+      <p class="note dim">Generating sends only the style and subject you pick to our servers. Pictures are not kept.</p>
     </div>
   </div>
 
@@ -906,7 +906,7 @@ async function genPollOnce(jid){
   if(v.status==='ready' && v.image){
     const img=new Image();
     img.onload=()=>{ genImg=img; decoding=false; $('liveBtn').hidden=false;
-      if(!genJob) genOutcome('On the wall: "'+v.subject+'" — AI-generated, content-checked.','ready'); };
+      if(!genJob) genOutcome('On the wall: "'+v.subject+'" — AI-generated.','ready'); };
     img.onerror=()=>{ if(!genJob) genOutcome('The picture could not be shown. Try again.','bad'); };
     img.src=v.image;
   } else if(v.status==='ready'){

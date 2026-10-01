@@ -52,7 +52,8 @@
   @media(max-width:760px){ .chip .fps,.top .ghost{display:none} .brand em{display:none} .top{padding:12px} }
 
   /* mode card */
-  .card{position:fixed; z-index:10; left:22px; bottom:98px; width:min(390px,calc(100vw - 44px)); padding:22px 22px 18px; border-radius:20px}
+  .card{position:fixed; z-index:10; left:22px; bottom:98px; width:min(390px,calc(100vw - 44px)); padding:22px 22px 18px; border-radius:20px;
+    max-height:calc(100vh - 176px); overflow-y:auto; scrollbar-width:thin}
   .kick{margin:0; font:600 11.5px/1 var(--mono); letter-spacing:.16em; text-transform:uppercase; color:var(--muted)}
   .kick b{color:var(--ink)}
   .card h1{margin:12px 0 0; font-size:30px; line-height:1.04; letter-spacing:-.03em; font-weight:780}
@@ -64,10 +65,19 @@
   .ctl .note b{color:var(--ink); font-weight:600}
   .range{display:flex; align-items:center; gap:10px; font:12px/1 var(--mono); color:var(--muted); width:100%}
   .range input{flex:1; accent-color:var(--pink)}
+  .gen{width:100%; margin-top:10px; padding-top:12px; border-top:1px solid var(--edge)}
+  .gen .kick{margin-bottom:10px}
+  .chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:6px}
+  .chips button{font:600 12.5px/1 system-ui,sans-serif; border-radius:999px; padding:7px 11px; border:1px solid var(--edge); background:rgba(255,255,255,.03); color:#cfd5e1}
+  .chips button[aria-checked=true]{border-color:transparent; background:linear-gradient(100deg,var(--accent),var(--pink)); color:#fff}
+  .chips.sub button{font-weight:500}
+  .genrow{display:flex; gap:8px; margin-top:12px}
+  .ctl .note.dim{opacity:.75}
+  @media(max-width:760px){ .gen .note.dim{display:none} }
   .tag{font:700 11px/1 var(--mono); letter-spacing:.08em; text-transform:uppercase; border-radius:999px; padding:6px 10px; color:#1a1206; background:var(--amber)}
   .priv{margin:16px 0 0; padding-top:12px; border-top:1px solid var(--edge); font-size:12px; color:var(--muted)}
   @media(max-width:760px){
-    .card{left:12px; right:12px; width:auto; top:62px; bottom:auto; padding:14px 16px 12px}
+    .card{left:12px; right:12px; width:auto; top:62px; bottom:auto; padding:14px 16px 12px; max-height:42vh}
     .card h1{font-size:22px; margin-top:8px} .card .body{font-size:13px; margin-top:6px} .priv{display:none}
   }
 
@@ -153,9 +163,20 @@
     <button class="btn pri" id="codecBtn">Codec round-trip · 4 s</button>
     <button class="btn" id="liveBtn" hidden>↺ Live</button>
     <p class="note" id="wallNote"></p>
+    <div class="gen" id="genBox" hidden>
+      <p class="kick"><b>AI</b> · design your signage</p>
+      <div class="chips" id="genPresets" role="radiogroup" aria-label="Style"></div>
+      <div class="chips sub" id="genSubjects" role="radiogroup" aria-label="Subject"></div>
+      <div class="genrow">
+        <button class="btn pri" id="genBtn">Generate</button>
+        <button class="btn" id="genCancel" hidden>Cancel</button>
+      </div>
+      <p class="note" id="genNote" aria-live="polite"></p>
+      <p class="note dim">Generating sends only the style and subject you pick to our servers. Pictures are checked before they are shown and are not kept.</p>
+    </div>
   </div>
 
-  <p class="priv">Everything runs on your device. The camera never leaves your browser — nothing is uploaded.</p>
+  <p class="priv">Rendering, tracking and the codec run on your device. The camera never leaves your browser.</p>
 </aside>
 
 <nav class="dock glass" id="dock" aria-label="Experiences">
@@ -464,6 +485,7 @@ function timecodeOverlay(t){
 function drawProg(t){
   frameNo++;
   if(decoding && decVid.readyState>=2) cover(pctx,decVid,PW,PH,false);
+  else if(genImg && (mode==='wall'||mode==='window')) cover(pctx,genImg,PW,PH,false);
   else if(camStream && camVid.readyState>=2) cover(pctx,camVid,PW,PH,true);
   else if(mode==='holo') synthHolo(t);
   else synth(t);
@@ -749,7 +771,85 @@ $('codecBtn').addEventListener('click',async ()=>{
   };
   rec.start(); setTimeout(()=>{ try{ rec.stop(); }catch(e){} },4000);
 });
-$('liveBtn').addEventListener('click',()=>{ decoding=false; decVid.pause(); $('liveBtn').hidden=true; });
+$('liveBtn').addEventListener('click',()=>{ decoding=false; decVid.pause(); genImg=null; $('liveBtn').hidden=true; });
+
+/* ================= AI signage via the public portal =================
+   serve.gaema.ai/portal/ is a CORS- and IP-range-limited door to our image model.
+   The page sends only a preset id and a subject from the portal's own list; the
+   portal builds the prompt, checks the picture, and answers every limit with a
+   plain message and a wait. The panel stays hidden unless the portal answers. */
+const PORTAL=new URLSearchParams(location.search).get('portal')||'https://serve.gaema.ai/portal/v1';
+let genImg=null, genSite=null, genPreset=null, genSubject=null, genJob=null, genPoll=0, genWait=0;
+async function portalCall(method,path,body){
+  const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),20000);
+  try{
+    const r=await fetch(PORTAL+path,{method,signal:ctl.signal,credentials:'omit',cache:'no-store',
+      headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
+    let j={}; try{ j=await r.json(); }catch(e){}
+    return [r.status,j];
+  }catch(e){ return [0,{message:'The generator is unreachable right now.'}]; }
+  finally{ clearTimeout(to); }
+}
+function chip(parent,label,on,click){
+  const b=document.createElement('button'); b.type='button'; b.textContent=label;
+  b.setAttribute('role','radio'); b.setAttribute('aria-checked',on?'true':'false');
+  b.addEventListener('click',click); parent.appendChild(b); return b;
+}
+function renderGen(){
+  const P=$('genPresets'), S=$('genSubjects'); P.textContent=''; S.textContent='';
+  genSite.presets.forEach(p=>chip(P,p.title,p.id===genPreset,()=>{ genPreset=p.id; genSubject=p.subjects[0]; renderGen(); }));
+  const pr=genSite.presets.find(p=>p.id===genPreset);
+  pr.subjects.forEach(s=>chip(S,s,s===genSubject,()=>{ genSubject=s; renderGen(); }));
+}
+function genNote(t){ $('genNote').textContent=t||''; }
+function genBusy(on){ $('genBtn').disabled=on||genWait>Date.now(); $('genCancel').hidden=!on; }
+function waitThen(sec,msg){
+  genWait=Date.now()+sec*1000;
+  const tick=()=>{ const left=Math.ceil((genWait-Date.now())/1000);
+    if(left>0){ genNote(msg+' ('+left+' s)'); $('genBtn').disabled=true; setTimeout(tick,1000); }
+    else{ genNote(''); $('genBtn').disabled=false; } };
+  tick();
+}
+async function genPollOnce(){
+  if(!genJob) return;
+  const [st,v]=await portalCall('GET','/jobs/'+genJob);
+  if(st!==200){
+    if(st===0||st>=500){ genPoll=setTimeout(genPollOnce,5000); genNote('Reconnecting…'); return; }
+    genJob=null; genBusy(false); genNote(v.message||'This picture is no longer available.'); return;
+  }
+  const eta=v.eta_s?(' — about '+Math.max(1,Math.round(v.eta_s))+' s'):'';
+  if(v.status==='queued') genNote((v.phase==='waking'?'Waking the generator':v.phase==='loading'?'Loading the model':'In the queue')+eta);
+  else if(v.status==='generating') genNote('Painting'+(v.steps?(' · step '+v.step+'/'+v.steps):'')+eta);
+  else if(v.status==='checking') genNote('Checking the picture…');
+  if(['queued','generating','checking'].includes(v.status)){ genPoll=setTimeout(genPollOnce,v.poll_after_ms||2000); return; }
+  genJob=null; genBusy(false);
+  if(v.status==='ready' && v.image){
+    const img=new Image();
+    img.onload=()=>{ genImg=img; decoding=false; $('liveBtn').hidden=false;
+      genNote('On the wall: "'+v.subject+'" — AI-generated, content-checked.'); };
+    img.src=v.image;
+  } else genNote(v.message||'No picture this time. Try again.');
+}
+$('genBtn').addEventListener('click',async ()=>{
+  if(!genSite||genJob) return;
+  genBusy(true); genNote('Sending…');
+  const [st,v]=await portalCall('POST','/generate',{preset:genPreset,subject:genSubject});
+  if(st===202){ genJob=v.job; genNote('In the queue'+(v.eta_s?(' — about '+Math.round(v.eta_s)+' s'):'')); genPoll=setTimeout(genPollOnce,v.poll_after_ms||2000); return; }
+  genBusy(false);
+  if((st===429||st===503) && v.retry_after_s) waitThen(Math.min(v.retry_after_s,3600),v.message||'Please wait');
+  else genNote(v.message||'The generator is unavailable right now.');
+});
+$('genCancel').addEventListener('click',async ()=>{
+  if(!genJob) return;
+  clearTimeout(genPoll); const jid=genJob; genJob=null; genBusy(false); genNote('Cancelled.');
+  await portalCall('POST','/jobs/'+jid+'/cancel',{});
+});
+(async ()=>{
+  const [st,site]=await portalCall('GET','/site');
+  if(st!==200||!site.presets||!site.presets.length) return;   // no portal: no panel
+  genSite=site; genPreset=site.presets[0].id; genSubject=site.presets[0].subjects[0];
+  renderGen(); $('genBox').hidden=false;
+})();
 
 /* ================= frame loop ================= */
 let W=1,H=1;

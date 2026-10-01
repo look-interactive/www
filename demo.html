@@ -924,10 +924,15 @@ $('genBtn').addEventListener('click',async ()=>{
   // only once a cut-off 202 has shown a job surely exists (the retry then adopts and
   // cancels it); otherwise its retry could make the very job the visitor cancelled.
   const cutoff=()=>st===202&&typeof v.job!=='string';
-  let sawCut=false;
-  for(let n=0;;n++){
+  let sawCut=false, n=0;
+  for(;;n++){
     [st,v]=await portalCall('POST','/generate',{preset:genPreset,subject:genSubject,token:genToken},60000);
     if(cutoff()) sawCut=true;
+    // The first POST's real answer settles an earlier cancelled-while-unreachable start:
+    // one-at-a-time is checked before every other refusal, so any answer but that one
+    // proves no older job is running for this page.
+    if(n===0 && genMaybeCancelled && st!==0 && !cutoff() && st!==400 &&
+       !(st===429 && v.error==='one_at_a_time')) genMaybeCancelled=false;
     if(!(cutoff()||(st===0&&(!genCancelPending||sawCut))) || n>=2) break;
     await new Promise(r=>setTimeout(r,3000));
     if(st===0&&genCancelPending&&!sawCut) break;
@@ -938,7 +943,8 @@ $('genBtn').addEventListener('click',async ()=>{
     // of waiting it out blind. Never one this page cancelled -- including one it
     // cancelled before it could learn the job's id, which is stopped now instead.
     genJob=v.job; genStart=Date.now();
-    if(genMaybeCancelled){ genMaybeCancelled=false; cancelJob();
+    // Only the first POST's answer can name the older job: a retry's names this press's own.
+    if(genMaybeCancelled && n===0){ genMaybeCancelled=false; cancelJob();
       genNote('Stopping the picture you cancelled. Press Generate again in a moment.','cancel'); return; }
     if(genCancelPending){ genCancelPending=false; cancelJob(); return; }
     genNote('Picking up your picture in progress…','q-');

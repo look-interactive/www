@@ -232,7 +232,8 @@ function setMode(m,quiet){
 }
 document.querySelectorAll('.dock button').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.m)));
 addEventListener('keydown',e=>{
-  if(e.target.tagName==='INPUT') return;
+  // A key already used by a control (the chip groups' arrows) does not also switch mode.
+  if(e.defaultPrevented||e.target.tagName==='INPUT'||e.target.closest('[role=radiogroup],[role=radio]')) return;
   const i=ORDER.indexOf(mode);
   if(e.key>='1'&&e.key<='4') setMode(ORDER[+e.key-1]);
   else if(e.key==='ArrowRight') setMode(ORDER[(i+1)%4]);
@@ -849,11 +850,18 @@ function genBusy(on){
   else if(!on && (had===cx||had===document.body)) (btn.disabled?$('genNote'):btn).focus({preventScroll:true});
 }
 function fmtWait(s){ return s>=5400?('about '+Math.round(s/3600)+' h'):s>=90?('about '+Math.round(s/60)+' min'):(s+' s'); }
+/* A server-sent number of seconds, or the default when it is missing or not a number. */
+function secs(x,d){ const n=Number(x); return Number.isFinite(n)&&n>0?n:d; }
 function waitThen(sec,msg){
   genWait=Date.now()+sec*1000;
+  // Focus is parked on the note while Generate is held, and handed back when it frees.
+  const b=$('genBtn'), note=$('genNote');
   const tick=()=>{ const left=Math.ceil((genWait-Date.now())/1000);
-    if(left>0){ genNote(msg+' ('+fmtWait(left)+')','wait'); $('genBtn').disabled=true; setTimeout(tick,left>120?30000:1000); }
-    else{ genNote('','idle'); $('genBtn').disabled=!!genJob; } };
+    if(left>0){ genNote(msg+' ('+fmtWait(left)+')','wait');
+      if(document.activeElement===b) note.focus({preventScroll:true});
+      b.disabled=true; setTimeout(tick,left>120?30000:1000); }
+    else{ genNote('','idle'); b.disabled=!!genJob;
+      if(!b.disabled && document.activeElement===note) b.focus({preventScroll:true}); } };
   tick();
 }
 /* ONE poll chain per job: every timer carries its job id, a poll is skipped while
@@ -879,7 +887,7 @@ async function genPollOnce(jid){
     // Network errors, 5xx and 429 are passing states (an edge reboot, a busy NAT):
     // keep the job and check again later. Anything else means the job is gone.
     if(st===0||st>=500||st===429){
-      schedulePoll(jid,Math.min(60,Math.max(5,v.retry_after_s||5))*1000);
+      schedulePoll(jid,Math.min(60,Math.max(5,secs(v.retry_after_s,5)))*1000);
       genNote(v.error==='disabled'||st===429?(v.message||'Busy, retrying.'):'Reconnecting…','reconnect'); return;
     }
     genJob=null; genBusy(false); genOutcome(v.message||'This picture is no longer available.','gone'); return;
@@ -909,13 +917,17 @@ $('genBtn').addEventListener('click',async ()=>{
   // The portal may take up to ~50 s to accept (free-text screen + router start);
   // giving up sooner would leave a job running that this page never shows.
   let st,v;
-  // A start that got no usable answer (unreachable, or a 202 cut off before its job id)
-  // may still have made a job: ask again with the same token, which either adopts that
-  // job (and honours a Cancel pressed meanwhile) or starts the one that was asked for.
+  // A start that got no usable answer may still have made a job: ask again with the
+  // same token, which adopts that job (and honours a Cancel pressed meanwhile) or starts
+  // the one that was asked for. After a Cancel, only a cut-off 202 -- a job surely
+  // exists, so the retry adopts and cancels it -- is asked again; an unreachable start
+  // is not, since its retry could make the very job the visitor just cancelled.
+  const cutoff=()=>st===202&&typeof v.job!=='string';
   for(let n=0;;n++){
     [st,v]=await portalCall('POST','/generate',{preset:genPreset,subject:genSubject,token:genToken},60000);
-    if(!(st===0||(st===202&&typeof v.job!=='string')) || n>=2) break;
+    if(!(cutoff()||(st===0&&!genCancelPending)) || n>=2) break;
     await new Promise(r=>setTimeout(r,3000));
+    if(st===0&&genCancelPending) break;
   }
   if(st===202&&typeof v.job!=='string') st=0;
   if(st===429 && v.error==='one_at_a_time' && v.job && !genCancelled.has(v.job)){
@@ -933,7 +945,7 @@ $('genBtn').addEventListener('click',async ()=>{
   genBusy(false);
   if(genCancelPending){ genCancelPending=false; genNote('Cancelled.','cancel'); return; }
   // A paused site's wait is the operator's to end: check again in a minute, not an hour.
-  const wait=v.error==='disabled'?Math.min(60,v.retry_after_s||60):v.retry_after_s;
+  const wait=v.error==='disabled'?Math.min(60,secs(v.retry_after_s,60)):secs(v.retry_after_s,0);
   if((st===429||st===503) && wait) waitThen(wait,v.message||'Please wait');
   else genNote(v.message||'The generator is unavailable right now.','err');
 });

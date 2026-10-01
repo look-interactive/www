@@ -172,7 +172,7 @@
         <button class="btn pri" id="genBtn">Generate</button>
         <button class="btn" id="genCancel" hidden>Cancel</button>
       </div>
-      <p class="note" id="genNote"></p>
+      <p class="note" id="genNote" tabindex="-1"></p>
       <p class="note dim">Generating sends only the style and subject you pick to our servers. Pictures are checked before they are shown and are not kept.</p>
     </div>
   </div>
@@ -804,7 +804,7 @@ async function portalCall(method,path,body,headersMs,ctlOut){
       headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
     clearTimeout(to); to=setTimeout(()=>ctl.abort(),180000);
     let j={}; try{ j=await r.json(); }catch(e){}
-    return [r.status,j];
+    return [r.status,(j&&typeof j==='object')?j:{}];   // a `null` or bare-value body reads as empty
   }catch(e){ return [0,{message:'The generator is unreachable right now.'}]; }
   finally{ clearTimeout(to); }
 }
@@ -840,7 +840,14 @@ function genNote(t,phase){
   if(phase!==undefined && phase!==genPhase){ genPhase=phase; $('genLive').textContent=t||'';
     n.scrollIntoView({block:'nearest'}); }
 }
-function genBusy(on){ $('genBtn').disabled=on||genWait>Date.now(); $('genCancel').hidden=!on; }
+/* Keyboard focus follows the action: Generate hands it to Cancel, and Cancel hands it
+   back (to the note when Generate is still held), so it never drops to the page top. */
+function genBusy(on){
+  const btn=$('genBtn'), cx=$('genCancel'), had=document.activeElement;
+  btn.disabled=on||genWait>Date.now(); cx.hidden=!on;
+  if(on && had===btn) cx.focus({preventScroll:true});
+  else if(!on && (had===cx||had===document.body)) (btn.disabled?$('genNote'):btn).focus({preventScroll:true});
+}
 function fmtWait(s){ return s>=5400?('about '+Math.round(s/3600)+' h'):s>=90?('about '+Math.round(s/60)+' min'):(s+' s'); }
 function waitThen(sec,msg){
   genWait=Date.now()+sec*1000;
@@ -901,7 +908,16 @@ $('genBtn').addEventListener('click',async ()=>{
   genBusy(true); genNote('Sending…','send');
   // The portal may take up to ~50 s to accept (free-text screen + router start);
   // giving up sooner would leave a job running that this page never shows.
-  const [st,v]=await portalCall('POST','/generate',{preset:genPreset,subject:genSubject,token:genToken},60000);
+  let st,v;
+  // A start that got no usable answer (unreachable, or a 202 cut off before its job id)
+  // may still have made a job: ask again with the same token, which either adopts that
+  // job (and honours a Cancel pressed meanwhile) or starts the one that was asked for.
+  for(let n=0;;n++){
+    [st,v]=await portalCall('POST','/generate',{preset:genPreset,subject:genSubject,token:genToken},60000);
+    if(!(st===0||(st===202&&typeof v.job!=='string')) || n>=2) break;
+    await new Promise(r=>setTimeout(r,3000));
+  }
+  if(st===202&&typeof v.job!=='string') st=0;
   if(st===429 && v.error==='one_at_a_time' && v.job && !genCancelled.has(v.job)){
     // This page already has a job running (a start it gave up on): follow it instead
     // of waiting it out blind. Never one this page cancelled.
@@ -915,6 +931,7 @@ $('genBtn').addEventListener('click',async ()=>{
     genNote('In the queue'+(v.eta_s?(' — about '+Math.round(v.eta_s)+' s'):''),'q-');
     schedulePoll(genJob,v.poll_after_ms||2000); return; }
   genBusy(false);
+  if(genCancelPending){ genCancelPending=false; genNote('Cancelled.','cancel'); return; }
   // A paused site's wait is the operator's to end: check again in a minute, not an hour.
   const wait=v.error==='disabled'?Math.min(60,v.retry_after_s||60):v.retry_after_s;
   if((st===429||st===503) && wait) waitThen(wait,v.message||'Please wait');

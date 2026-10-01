@@ -790,6 +790,7 @@ let genImg=null, genSite=null, genPreset=null, genSubject=null, genJob=null, gen
 let genInflight=null, genCancelPending=false;   // genInflight: the job id a poll is in flight for
 let genPollCtl=null;                           // aborts the in-flight poll when its job is cancelled
 const genCancelled=new Set();                  // jobs this page cancelled: never picked up again
+let genMaybeCancelled=false;                   // a start cancelled while unreachable may have made a job
 // This page's own random token: the portal names a running job only to the page that
 // started it (an address alone is shared behind a NAT and says nothing about whose job).
 const genToken=Array.from(crypto.getRandomValues(new Uint8Array(18)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -919,31 +920,38 @@ $('genBtn').addEventListener('click',async ()=>{
   let st,v;
   // A start that got no usable answer may still have made a job: ask again with the
   // same token, which adopts that job (and honours a Cancel pressed meanwhile) or starts
-  // the one that was asked for. After a Cancel, only a cut-off 202 -- a job surely
-  // exists, so the retry adopts and cancels it -- is asked again; an unreachable start
-  // is not, since its retry could make the very job the visitor just cancelled.
+  // the one that was asked for. After a Cancel, an unreachable start is asked again
+  // only once a cut-off 202 has shown a job surely exists (the retry then adopts and
+  // cancels it); otherwise its retry could make the very job the visitor cancelled.
   const cutoff=()=>st===202&&typeof v.job!=='string';
+  let sawCut=false;
   for(let n=0;;n++){
     [st,v]=await portalCall('POST','/generate',{preset:genPreset,subject:genSubject,token:genToken},60000);
-    if(!(cutoff()||(st===0&&!genCancelPending)) || n>=2) break;
+    if(cutoff()) sawCut=true;
+    if(!(cutoff()||(st===0&&(!genCancelPending||sawCut))) || n>=2) break;
     await new Promise(r=>setTimeout(r,3000));
-    if(st===0&&genCancelPending) break;
+    if(st===0&&genCancelPending&&!sawCut) break;
   }
   if(st===202&&typeof v.job!=='string') st=0;
   if(st===429 && v.error==='one_at_a_time' && v.job && !genCancelled.has(v.job)){
     // This page already has a job running (a start it gave up on): follow it instead
-    // of waiting it out blind. Never one this page cancelled.
+    // of waiting it out blind. Never one this page cancelled -- including one it
+    // cancelled before it could learn the job's id, which is stopped now instead.
     genJob=v.job; genStart=Date.now();
+    if(genMaybeCancelled){ genMaybeCancelled=false; cancelJob();
+      genNote('Stopping the picture you cancelled. Press Generate again in a moment.','cancel'); return; }
     if(genCancelPending){ genCancelPending=false; cancelJob(); return; }
     genNote('Picking up your picture in progress…','q-');
     schedulePoll(genJob,500); return; }
   if(st===202){
-    genJob=v.job; genStart=Date.now();
+    genJob=v.job; genStart=Date.now(); genMaybeCancelled=false;   // nothing else is running
     if(genCancelPending){ genCancelPending=false; cancelJob(); return; }
     genNote('In the queue'+(v.eta_s?(' — about '+Math.round(v.eta_s)+' s'):''),'q-');
     schedulePoll(genJob,v.poll_after_ms||2000); return; }
   genBusy(false);
-  if(genCancelPending){ genCancelPending=false; genNote('Cancelled.','cancel'); return; }
+  if(genCancelPending){ genCancelPending=false;
+    if(st===0) genMaybeCancelled=true;   // a job may exist that the page could not name
+    genNote('Cancelled.','cancel'); return; }
   // A paused site's wait is the operator's to end: check again in a minute, not an hour.
   const wait=v.error==='disabled'?Math.min(60,secs(v.retry_after_s,60)):secs(v.retry_after_s,0);
   if((st===429||st===503) && wait) waitThen(wait,v.message||'Please wait');

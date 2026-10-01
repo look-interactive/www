@@ -233,7 +233,8 @@ function setMode(m,quiet){
 document.querySelectorAll('.dock button').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.m)));
 addEventListener('keydown',e=>{
   // A key already used by a control (the chip groups' arrows) does not also switch mode.
-  if(e.defaultPrevented||e.target.tagName==='INPUT'||e.target.closest('[role=radiogroup],[role=radio]')) return;
+  const t=e.target;   // may be the document itself, which has no closest()
+  if(e.defaultPrevented||t.tagName==='INPUT'||(t.closest&&t.closest('[role=radiogroup],[role=radio]'))) return;
   const i=ORDER.indexOf(mode);
   if(e.key>='1'&&e.key<='4') setMode(ORDER[+e.key-1]);
   else if(e.key==='ArrowRight') setMode(ORDER[(i+1)%4]);
